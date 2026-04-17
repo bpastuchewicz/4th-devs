@@ -39,14 +39,31 @@ export const log = (label, data) => {
 };
 
 export const parseToolResult = (result) => {
-  const text = result.content?.find((c) => c.type === "text")?.text ?? "";
-
-  if (result.isError) {
-    throw new Error(text || "Tool call failed");
+  // 1. Defensywne sprawdzenie czy result w ogóle istnieje
+  if (!result) {
+    return "";
   }
 
+  // 2. Obsługa błędu zgłoszonego przez serwer
+  if (result.isError) {
+    const errorText = result.content?.find((c) => c.type === "text")?.text ?? "Unknown tool error";
+    throw new Error(errorText);
+  }
+
+  // 3. Bezpieczne wyciąganie tekstu (z opcjonalnym chainingiem)
+  const text = result.content?.find((c) => c.type === "text")?.text ?? "";
+
+  if (!text) {
+    return "";
+  }
+
+  // 4. Próba parsowania JSON, jeśli tekst wygląda na JSON
   try {
-    return JSON.parse(text);
+    // Sprawdzamy czy to w ogóle może być JSON, żeby nie rzucać catchami bez sensu
+    if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+      return JSON.parse(text);
+    }
+    return text;
   } catch {
     return text;
   }

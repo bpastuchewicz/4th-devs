@@ -46,7 +46,9 @@ export const run = async (query, { mcpClient, mcpTools }) => {
       return { response: text, toolCalls: history };
     }
 
-    messages.push(...response.output);
+    // Only push the assistant message (not individual function_call items)
+    const assistantMessages = (response.output ?? []).filter((item) => item.type === "message");
+    messages.push(...assistantMessages);
 
     for (const tc of toolCalls) {
       history.push({ name: tc.name, arguments: JSON.parse(tc.arguments) });
