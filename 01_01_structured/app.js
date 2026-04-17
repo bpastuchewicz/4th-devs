@@ -70,7 +70,7 @@ const personSchema = {
 };
 
 async function main() {
-  const text = "John is 30 years old and works as a software engineer. He is skilled in JavaScript, Python, and React.";
+  const text = "Zdzisław is 30 years old and works as a software engineer. He is skilled in JavaScript, Python, and React.";
   const person = await extractPerson(text);
 
   console.log("Name:", person.name ?? "unknown");

@@ -5,22 +5,31 @@ import { fileURLToPath } from "node:url";
 const MIN_NODE_VERSION = 24;
 const ROOT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_ENV_FILE = path.join(ROOT_DIR, ".env");
+
+// Virtual URL intercepted by the Copilot fetch patch – never actually called over the network
+const COPILOT_RESPONSES_SHIM_URL = "https://api.githubcopilot.com/__responses_shim__";
+const COPILOT_TOKEN_EXCHANGE_URL = "https://api.github.com/copilot_internal/v2/token";
+const COPILOT_BASE_URL = "https://api.githubcopilot.com";
+
 const RESPONSES_ENDPOINTS = {
   openai: "https://api.openai.com/v1/responses",
-  openrouter: "https://openrouter.ai/api/v1/responses"
+  openrouter: "https://openrouter.ai/api/v1/responses",
+  copilot: COPILOT_RESPONSES_SHIM_URL
 };
 const EMBEDDINGS_ENDPOINTS = {
   openai: "https://api.openai.com/v1/embeddings",
-  openrouter: "https://openrouter.ai/api/v1/embeddings"
+  openrouter: "https://openrouter.ai/api/v1/embeddings",
+  copilot: `${COPILOT_BASE_URL}/embeddings`
 };
 const CHAT_API_BASE_URLS = {
   openai: "https://api.openai.com/v1",
-  openrouter: "https://openrouter.ai/api/v1"
+  openrouter: "https://openrouter.ai/api/v1",
+  copilot: COPILOT_BASE_URL
 };
 const OPENROUTER_ONLINE_SUFFIX = ":online";
 const VALID_OPENAI_SEARCH_CONTEXT_SIZES = new Set(["low", "medium", "high"]);
 const VALID_OPENROUTER_WEB_ENGINES = new Set(["native", "exa"]);
-const VALID_PROVIDERS = new Set(["openai", "openrouter"]);
+const VALID_PROVIDERS = new Set(["openai", "openrouter", "copilot"]);
 
 const [major] = process.versions.node.split(".").map(Number);
 if (major < MIN_NODE_VERSION) {
@@ -89,12 +98,15 @@ loadEnvFile(ROOT_ENV_FILE);
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY?.trim() ?? "";
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY?.trim() ?? "";
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN?.trim() ?? "";
+const COPILOT_MODEL_ENV = process.env.COPILOT_MODEL?.trim() || "gpt-4.1";
 const requestedProvider = process.env.AI_PROVIDER?.trim().toLowerCase() ?? "";
 const hasOpenAIKey = Boolean(OPENAI_API_KEY);
 const hasOpenRouterKey = Boolean(OPENROUTER_API_KEY);
+const hasCopilotKey = Boolean(GITHUB_TOKEN);
 
 if (requestedProvider && !VALID_PROVIDERS.has(requestedProvider)) {
-  console.error("\x1b[31mError: AI_PROVIDER must be one of: openai, openrouter\x1b[0m");
+  console.error("\x1b[31mError: AI_PROVIDER must be one of: openai, openrouter, copilot\x1b[0m");
   process.exit(1);
 }
 
@@ -110,16 +122,28 @@ const resolveProvider = () => {
       process.exit(1);
     }
 
+    if (requestedProvider === "copilot" && !hasCopilotKey) {
+      console.error("\x1b[31mError: AI_PROVIDER=copilot requires GITHUB_TOKEN\x1b[0m");
+      process.exit(1);
+    }
+
     return requestedProvider;
   }
 
+  // Auto-detection: prefer Copilot when GITHUB_TOKEN is set and no explicit provider key
+  if (hasCopilotKey && !hasOpenAIKey && !hasOpenRouterKey) return "copilot";
   if (hasOpenAIKey) return "openai";
   if (hasOpenRouterKey) return "openrouter";
+  if (hasCopilotKey) return "copilot";
   return "openai";
 };
 
 export const AI_PROVIDER = resolveProvider();
-export const AI_API_KEY = AI_PROVIDER === "openai" ? OPENAI_API_KEY : OPENROUTER_API_KEY;
+export const AI_API_KEY = AI_PROVIDER === "openai"
+  ? OPENAI_API_KEY
+  : AI_PROVIDER === "openrouter"
+    ? OPENROUTER_API_KEY
+    : GITHUB_TOKEN; // copilot – the actual session token exchange happens in the fetch patch
 export const RESPONSES_API_ENDPOINT = RESPONSES_ENDPOINTS[AI_PROVIDER];
 export const EMBEDDINGS_API_ENDPOINT = EMBEDDINGS_ENDPOINTS[AI_PROVIDER];
 export const CHAT_API_BASE_URL = CHAT_API_BASE_URLS[AI_PROVIDER];
@@ -159,6 +183,11 @@ const stripOpenRouterOnlineSuffix = (model) =>
 export const resolveModelForProvider = (model) => {
   if (typeof model !== "string" || !model.trim()) {
     throw new Error("Model must be a non-empty string");
+  }
+
+  // For Copilot, always use the configured Copilot model (ignoring OpenAI model names)
+  if (AI_PROVIDER === "copilot") {
+    return COPILOT_MODEL_ENV;
   }
 
   if (AI_PROVIDER !== "openrouter" || model.includes("/")) {
@@ -269,6 +298,11 @@ export const buildResponsesRequest = ({ model, tools, plugins, webSearch = false
     request.plugins = plugins;
   }
 
+  // Copilot does not support the OpenAI Responses API web-search extensions
+  if (AI_PROVIDER === "copilot") {
+    return request;
+  }
+
   const webSearchConfig = normalizeWebSearchConfig(webSearch);
 
   if (!webSearchConfig) {
@@ -311,3 +345,257 @@ export const buildResponsesRequest = ({ model, tools, plugins, webSearch = false
 
 // Backward-compatible alias used in existing examples.
 export { OPENAI_API_KEY, OPENROUTER_API_KEY };
+
+// ---------------------------------------------------------------------------
+// GitHub Copilot Adapter
+//
+// Patches globalThis.fetch to intercept calls to COPILOT_RESPONSES_SHIM_URL
+// and transparently translate them:
+//   Responses API format  →  Chat Completions (api.githubcopilot.com)
+//   Chat Completions response  →  Responses API format
+//
+// Two-step auth:  GITHUB_TOKEN → session token (cached, refreshed before expiry)
+// ---------------------------------------------------------------------------
+
+if (AI_PROVIDER === "copilot") {
+  let _copilotSessionToken = "";
+  let _copilotSessionExpires = 0;
+  const _REFRESH_MARGIN_MS = 60_000;
+
+  const _getSessionToken = async () => {
+    if (_copilotSessionToken && Date.now() < _copilotSessionExpires - _REFRESH_MARGIN_MS) {
+      return _copilotSessionToken;
+    }
+
+    const res = await _originalFetch(COPILOT_TOKEN_EXCHANGE_URL, {
+      headers: {
+        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        "User-Agent": "GithubCopilot/1.155.0",
+        Accept: "application/json"
+      }
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(
+        `Copilot token exchange failed (${res.status}). `
+        + "Check GITHUB_TOKEN and ensure your account has an active Copilot subscription.\n"
+        + body
+      );
+    }
+
+    const data = await res.json();
+    if (!data.token) {
+      throw new Error("Copilot token exchange: no token in response. Subscription required.");
+    }
+
+    _copilotSessionToken = data.token;
+    _copilotSessionExpires = data.expires_at
+      ? data.expires_at * 1000
+      : Date.now() + 1_500_000; // fallback: +25 min
+
+    return _copilotSessionToken;
+  };
+
+  /** Translate Responses API `input` to Chat Completions `messages`. */
+  const _inputToMessages = (input) => {
+    if (typeof input === "string") {
+      return [{ role: "user", content: input }];
+    }
+
+    if (!Array.isArray(input)) {
+      return [{ role: "user", content: String(input) }];
+    }
+
+    const messages = [];
+    let i = 0;
+    while (i < input.length) {
+      const item = input[i];
+
+      // Responses API function_call items → Chat Completions assistant message with tool_calls.
+      // Group consecutive function_call items into a single assistant message (one turn).
+      if (item.type === "function_call") {
+        const toolCalls = [];
+        while (i < input.length && input[i].type === "function_call") {
+          const fc = input[i];
+          toolCalls.push({
+            id: fc.call_id ?? fc.id ?? "",
+            type: "function",
+            function: { name: fc.name ?? "", arguments: fc.arguments ?? "{}" }
+          });
+          i++;
+        }
+        messages.push({ role: "assistant", content: null, tool_calls: toolCalls });
+        continue;
+      }
+
+      // Responses API function_call_output → Chat Completions tool result
+      if (item.type === "function_call_output") {
+        messages.push({
+          role: "tool",
+          tool_call_id: item.call_id ?? item.id ?? "",
+          content: typeof item.output === "string" ? item.output : JSON.stringify(item.output)
+        });
+        i++;
+        continue;
+      }
+
+      // Standard Responses API message → Chat Completions message
+      if (item.role) {
+        let content = item.content;
+        if (Array.isArray(content)) {
+          content = content
+            .filter((p) => p.type === "input_text" || p.type === "text" || p.type === "output_text")
+            .map((p) => p.text ?? "")
+            .join("\n");
+        }
+        messages.push({ role: item.role, content: content ?? "" });
+      }
+      i++;
+    }
+
+    return messages;
+  };
+
+  /** Translate Responses API `text.format` (JSON schema) to Chat Completions `response_format`. */
+  const _textFormatToResponseFormat = (textFormat) => {
+    if (!textFormat) return undefined;
+
+    // Already a plain { type: "json_object" } style
+    if (textFormat.type === "json_object") {
+      return { type: "json_object" };
+    }
+
+    // Responses API JSON schema format: { type: "json_schema", schema: {...}, name: "..." }
+    if (textFormat.type === "json_schema" || textFormat.schema) {
+      return {
+        type: "json_schema",
+        json_schema: {
+          name: textFormat.name ?? "response",
+          strict: textFormat.strict ?? true,
+          schema: textFormat.schema ?? textFormat
+        }
+      };
+    }
+
+    return undefined;
+  };
+
+  /** Translate Responses API `tools` array to Chat Completions tools. */
+  const _translateTools = (tools) => {
+    if (!Array.isArray(tools)) return undefined;
+
+    return tools
+      .filter((t) => t.type === "function")
+      .map((t) => ({
+        type: "function",
+        function: {
+          name: t.name,
+          description: t.description ?? "",
+          parameters: t.parameters ?? {}
+        }
+      }));
+  };
+
+  /** Translate Chat Completions response to Responses API format. */
+  const _ccToResponses = (data) => {
+    const choice = data.choices?.[0];
+    const message = choice?.message ?? {};
+    const outputItems = [];
+
+    // Tool calls
+    if (Array.isArray(message.tool_calls)) {
+      for (const tc of message.tool_calls) {
+        outputItems.push({
+          type: "function_call",
+          id: tc.id,
+          call_id: tc.id,
+          name: tc.function?.name ?? "",
+          arguments: tc.function?.arguments ?? "{}"
+        });
+      }
+    }
+
+    // Text content
+    const text = message.content ?? "";
+    if (text) {
+      outputItems.push({
+        type: "message",
+        id: `msg_${Math.random().toString(36).slice(2, 11)}`,
+        role: "assistant",
+        content: [{ type: "output_text", text }]
+      });
+    }
+
+    return {
+      id: data.id ?? `resp_${Math.random().toString(36).slice(2, 11)}`,
+      object: "response",
+      model: data.model ?? COPILOT_MODEL_ENV,
+      output: outputItems,
+      output_text: text,
+      usage: {
+        input_tokens: data.usage?.prompt_tokens ?? 0,
+        output_tokens: data.usage?.completion_tokens ?? 0,
+        total_tokens: data.usage?.total_tokens ?? 0
+      }
+    };
+  };
+
+  // Save the original fetch before patching
+  const _originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (url, options = {}) => {
+    // Only intercept calls to our virtual Copilot shim URL
+    if (url !== COPILOT_RESPONSES_SHIM_URL) {
+      return _originalFetch(url, options);
+    }
+
+    const sessionToken = await _getSessionToken();
+
+    // Parse and translate request body
+    const reqBody = JSON.parse(options.body ?? "{}");
+    const messages = _inputToMessages(reqBody.input);
+    const responseFormat = _textFormatToResponseFormat(reqBody.text?.format);
+    const tools = _translateTools(reqBody.tools);
+
+    const ccBody = { model: reqBody.model ?? COPILOT_MODEL_ENV, messages };
+    if (responseFormat) ccBody.response_format = responseFormat;
+    if (tools?.length) {
+      ccBody.tools = tools;
+      ccBody.tool_choice = "auto";
+    }
+    // `reasoning` (o1/o3 specific) is not supported by Copilot – silently dropped
+
+    const ccResponse = await _originalFetch(`${COPILOT_BASE_URL}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${sessionToken}`,
+        "User-Agent": "GithubCopilot/1.155.0",
+        "Editor-Version": "vscode/1.90.0",
+        "Editor-Plugin-Version": "copilot-chat/0.17.0",
+        "Openai-Intent": "conversation-panel",
+        "X-Github-Api-Version": "2023-07-07"
+      },
+      signal: options.signal,
+      body: JSON.stringify(ccBody)
+    });
+
+    if (!ccResponse.ok) {
+      // Return error response in a format compatible with the lessons' error handling
+      return ccResponse;
+    }
+
+    const ccData = await ccResponse.json();
+    const translated = _ccToResponses(ccData);
+
+    return new Response(JSON.stringify(translated), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
+  };
+
+  console.log(
+    `\x1b[36m[Copilot] Provider: GitHub Copilot | Model: ${COPILOT_MODEL_ENV}\x1b[0m`
+  );
+}
