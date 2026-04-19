@@ -77,15 +77,19 @@ const log = {
     console.log(`${colors.dim}         A: ${truncate(answer, 200)}${colors.reset}`);
   },
 
-  gemini: (action, detail) => {
-    console.log(`${colors.dim}[${timestamp()}]${colors.reset} ${colors.bgMagenta}${colors.white} GEMINI ${colors.reset} ${action}`);
+  image: (action, detail) => {
+    console.log(`${colors.dim}[${timestamp()}]${colors.reset} ${colors.bgMagenta}${colors.white} IMAGE ${colors.reset} ${action}`);
     if (detail) console.log(`${colors.dim}         ${detail}${colors.reset}`);
   },
 
-  geminiResult: (success, msg) => {
+  imageResult: (success, msg) => {
     const icon = success ? `${colors.green}✓${colors.reset}` : `${colors.red}✗${colors.reset}`;
     console.log(`${colors.dim}         ${icon} ${msg}${colors.reset}`);
-  }
+  },
+
+  /** @deprecated Use image/imageResult */
+  gemini: (action, detail) => log.image(action, detail),
+  geminiResult: (success, msg) => log.imageResult(success, msg)
 };
 
 export default log;

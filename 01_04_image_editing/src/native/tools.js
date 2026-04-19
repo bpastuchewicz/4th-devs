@@ -9,7 +9,7 @@
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { join, extname, dirname } from "path";
 import { fileURLToPath } from "url";
-import { generateImage, editImage, editImageWithReferences } from "./gemini.js";
+import { generateImage, editImage, editImageWithReferences } from "./openai-image.js";
 import { vision } from "./vision.js";
 import log from "../helpers/logger.js";
 

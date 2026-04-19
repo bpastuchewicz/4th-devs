@@ -9,6 +9,7 @@ import { createReadline, runRepl } from "./src/repl.js";
 import { onShutdown } from "./src/helpers/shutdown.js";
 import { logStats } from "./src/helpers/stats.js";
 import log from "./src/helpers/logger.js";
+import { CHAT_API_BASE_URL } from "../config.js";
 
 const EXAMPLES = [
   "Restyle workspace/input/SCR-20260131-ugqp.jpeg to match workspace/style-guide.md",
@@ -57,6 +58,15 @@ const printExamples = () => {
 
 const main = async () => {
   log.box("Image Editing Agent");
+
+  // Copilot doesn't expose /images API — warn early
+  if (CHAT_API_BASE_URL.includes("githubcopilot.com")) {
+    log.warn("Image generation provider warning",
+      "GitHub Copilot does not support /images/generations.\n" +
+      "         Add OPENAI_API_KEY to .env to use the OpenAI Images API (gpt-image-1).\n" +
+      "         You may continue, but create_image / edit_image calls will fail.");
+  }
+
   await confirmRun();
   printTools();
 

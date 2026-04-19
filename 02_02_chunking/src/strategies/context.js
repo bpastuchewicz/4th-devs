@@ -17,15 +17,32 @@ const enrichChunk = async (chunk) => {
   };
 };
 
+/**
+ * Process items in parallel with a max concurrency limit.
+ */
+const pool = async (items, fn, concurrency = 4) => {
+  const results = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i], i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+  return results;
+};
+
 export const chunkWithContext = async (text, opts = {}) => {
   const base = chunkBySeparators(text, opts);
-  const enriched = [];
+  let done = 0;
 
-  for (const [i, chunk] of base.entries()) {
-    process.stdout.write(`  context: enriching ${i + 1}/${base.length}\r`);
-    enriched.push(await enrichChunk(chunk));
-  }
+  const enriched = await pool(base, async (chunk) => {
+    const result = await enrichChunk(chunk);
+    process.stdout.write(`  context: enriched ${++done}/${base.length}\r`);
+    return result;
+  }, 4);
+
   console.log();
-
   return enriched;
 };
