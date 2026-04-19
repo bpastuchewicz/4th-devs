@@ -1,15 +1,15 @@
 import { createMcpClient, listMcpTools } from "./src/mcp/client.js";
-import { nativeTools } from "./src/native/tools.js";
+import { nativeTools, printBackendStatus } from "./src/native/tools.js";
 import { createReadline, runRepl } from "./src/repl.js";
 import { onShutdown } from "./src/helpers/shutdown.js";
 import { logStats } from "./src/helpers/stats.js";
 import log from "./src/helpers/logger.js";
 
 const EXAMPLES = [
-  "Transcribe the file from workspace/input/",
-  "Generate audio: Welcome to our product demo",
-  "Analyze the speech patterns in workspace/input/tech_briefing.wav",
-  "What topics are discussed in this recording?",
+  "Transkrybuj plik z workspace/input/",
+  "Wygeneruj audio po polsku: Witaj w naszym produkcie",
+  "Transcribe workspace/input/recording.mp3 to English",
+  "What topics are discussed in workspace/input/briefing.wav?",
 ];
 
 const printExamples = () => {
@@ -25,6 +25,9 @@ const main = async () => {
   for (const t of nativeTools) {
     log.info(`${t.name.padEnd(18)} — ${t.description.split(".")[0]}`);
   }
+
+  log.heading("BACKENDS");
+  await printBackendStatus();
 
   log.start("Connecting to MCP server...");
   const mcpClient = await createMcpClient();
