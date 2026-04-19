@@ -22,8 +22,11 @@ Rules:
   try {
     parsed = JSON.parse(raw);
   } catch {
-    const cleaned = raw.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
-    parsed = JSON.parse(cleaned);
+    // Strip markdown fences, then extract the first [...] array from the text
+    const stripped = raw.replace(/```json?\n?/g, "").replace(/```/g, "");
+    const match = stripped.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error(`LLM response does not contain a JSON array:\n${raw.slice(0, 200)}`);
+    parsed = JSON.parse(match[0]);
   }
 
   const headings = buildHeadingIndex(text);
