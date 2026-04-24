@@ -375,31 +375,26 @@ Provide:
 
       log.info(`Launching browser for PDF conversion...`);
 
-      // Resolve executablePath from cache if puppeteer doesn't find its own browser
+      // Find a working Chrome from puppeteer cache (ascending version order = prefer older/stable)
       let executablePath;
-      try {
-        const { executablePath: defaultPath } = puppeteer;
-        if (typeof defaultPath === "function") {
-          executablePath = defaultPath();
-        }
-      } catch {
-        // fall through to manual cache lookup
+      const { homedir } = await import("os");
+      const cacheDir = join(homedir(), ".cache/puppeteer/chrome");
+      const { readdir: readdirCache } = await import("fs/promises");
+      const versions = (await readdirCache(cacheDir).catch(() => [])).filter(v => !v.endsWith(".zip")).sort();
+      for (const v of versions) {
+        const candidate = join(cacheDir, v, "chrome-linux64/chrome");
+        try { await readFile(candidate); executablePath = candidate; break; } catch { /* skip */ }
       }
       if (!executablePath) {
-        const { homedir } = await import("os");
-        const cacheDir = join(homedir(), ".cache/puppeteer/chrome");
-        const { readdir } = await import("fs/promises");
-        const versions = (await readdir(cacheDir).catch(() => [])).sort().reverse();
-        for (const v of versions) {
-          const candidate = join(cacheDir, v, "chrome-linux64/chrome");
-          try { await readFile(candidate); executablePath = candidate; break; } catch { /* skip */ }
-        }
+        log.error("html_to_pdf", "No Chrome executable found in ~/.cache/puppeteer/chrome");
+        return { success: false, error: "No Chrome executable found. Run: node node_modules/puppeteer/install.mjs" };
       }
-      
+      log.info(`Using Chrome: ${executablePath}`);
+
       // Launch Puppeteer with bundled Chrome
       const browser = await puppeteer.launch({
         headless: true,
-        ...(executablePath ? { executablePath } : {}),
+        executablePath,
         args: ["--no-sandbox", "--disable-setuid-sandbox"]
       });
 
