@@ -374,10 +374,32 @@ Provide:
       };
 
       log.info(`Launching browser for PDF conversion...`);
+
+      // Resolve executablePath from cache if puppeteer doesn't find its own browser
+      let executablePath;
+      try {
+        const { executablePath: defaultPath } = puppeteer;
+        if (typeof defaultPath === "function") {
+          executablePath = defaultPath();
+        }
+      } catch {
+        // fall through to manual cache lookup
+      }
+      if (!executablePath) {
+        const { homedir } = await import("os");
+        const cacheDir = join(homedir(), ".cache/puppeteer/chrome");
+        const { readdir } = await import("fs/promises");
+        const versions = (await readdir(cacheDir).catch(() => [])).sort().reverse();
+        for (const v of versions) {
+          const candidate = join(cacheDir, v, "chrome-linux64/chrome");
+          try { await readFile(candidate); executablePath = candidate; break; } catch { /* skip */ }
+        }
+      }
       
       // Launch Puppeteer with bundled Chrome
       const browser = await puppeteer.launch({
         headless: true,
+        ...(executablePath ? { executablePath } : {}),
         args: ["--no-sandbox", "--disable-setuid-sandbox"]
       });
 
