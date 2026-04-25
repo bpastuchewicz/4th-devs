@@ -1,27 +1,22 @@
-import { AI_API_KEY, EMBEDDINGS_API_ENDPOINT, EXTRA_API_HEADERS, resolveModelForProvider } from "../../../config.js";
+import { createMcpClient, callMcpTool } from "../mcp/client.js";
 
-const MODEL = resolveModelForProvider("text-embedding-3-small");
+let _client = null;
+
+const getMcpClient = async () => {
+  if (!_client) {
+    _client = await createMcpClient("symfony-stdio");
+  }
+  return _client;
+};
 
 export const embed = async (texts) => {
   const input = Array.isArray(texts) ? texts : [texts];
 
-  const response = await fetch(EMBEDDINGS_API_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${AI_API_KEY}`,
-      ...EXTRA_API_HEADERS
-    },
-    body: JSON.stringify({ model: MODEL, input }),
-  });
+  const client = await getMcpClient();
 
-  const data = await response.json();
+  const results = await Promise.all(
+    input.map((text) => callMcpTool(client, "generate_embedding", { text }))
+  );
 
-  if (data.error) {
-    throw new Error(`Embedding error: ${data.error.message ?? JSON.stringify(data.error)}`);
-  }
-
-  return data.data
-    .sort((a, b) => a.index - b.index)
-    .map((d) => d.embedding);
+  return results.map((r) => (Array.isArray(r) ? r : r.embedding ?? r));
 };

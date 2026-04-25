@@ -7,6 +7,17 @@
         "LOG_LEVEL": "info",
         "FS_ROOT": "."
       }
+    },
+    "symfony-stdio": {
+      "type": "stdio",
+      "command": "php",
+      "args": [
+        "/home/bpast/php/copilot-mcp/bin/console",
+        "mcp:server"
+      ],
+      "env": {
+        "APP_ENV": "dev"
+      }
     }
   }
 }
