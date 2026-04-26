@@ -14,7 +14,7 @@
 import { writeQuery } from "./driver.js";
 import log from "../helpers/logger.js";
 
-const EMBEDDING_DIM = 1536; // openai/text-embedding-3-small
+const EMBEDDING_DIM = 384; // symfony-stdio generate_embedding
 
 const SETUP_STATEMENTS = [
   // ── Uniqueness constraints ──────────────────────────────────
