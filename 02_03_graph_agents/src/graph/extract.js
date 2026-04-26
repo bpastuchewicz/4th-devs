@@ -137,7 +137,6 @@ export const extractFromChunk = async (text, context = {}) => {
       tools: [],
       reasoning: null,
       maxOutputTokens: 4096,
-      responseFormat: { type: "json_object" },
     });
 
     const raw = extractText(response);
