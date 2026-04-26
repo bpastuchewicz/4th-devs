@@ -11,10 +11,8 @@
  * └──────────────────────────────────────────────────────┘
  */
 
-import type OpenAI from 'openai'
-import type { Session, MemoryConfig, ProcessedContext } from '../types.js'
+import type { Session, MemoryConfig, ProcessedContext, OpenAIClient } from '../types.js'
 import { estimateMessagesTokensRaw } from '../ai/tokens.js'
-import { DEFAULT_MEMORY_CONFIG } from '../config.js'
 import { log, logError } from '../helpers/log.js'
 import { buildObservedContext, buildPassthroughContext } from './context.js'
 import { runObservation, runReflection } from './runtime.js'
@@ -33,10 +31,11 @@ import { runObservation, runReflection } from './runtime.js'
  * Observer runs at most once per HTTP request (flag on session.memory).
  */
 export const processMemory = async (
-  openai: OpenAI,
+  openai: OpenAIClient,
   session: Session,
   baseSystemPrompt: string,
-  config: MemoryConfig = DEFAULT_MEMORY_CONFIG,
+  config: MemoryConfig,
+  memoryDir: string,
 ): Promise<ProcessedContext> => {
   const { messages, memory } = session
   const unobserved = messages.slice(memory.lastObservedIndex)
@@ -56,7 +55,7 @@ export const processMemory = async (
   log('memory', `Threshold exceeded (${pendingTokens} >= ${config.observationThresholdTokens}), running observer`)
 
   try {
-    await runObservation(openai, session, config)
+    await runObservation(openai, session, config, memoryDir)
     memory._observerRanThisRequest = true
   } catch (err) {
     logError('memory', 'Observer failed:', err)
@@ -69,7 +68,7 @@ export const processMemory = async (
 
   if (shouldReflect) {
     try {
-      await runReflection(openai, session, config)
+      await runReflection(openai, session, config, memoryDir)
     } catch (err) {
       logError('memory', 'Reflector failed:', err)
     }
@@ -87,9 +86,10 @@ export const processMemory = async (
 // ============================================================================
 
 export const flushMemory = async (
-  openai: OpenAI,
+  openai: OpenAIClient,
   session: Session,
-  config: MemoryConfig = DEFAULT_MEMORY_CONFIG,
+  config: MemoryConfig,
+  memoryDir: string,
 ): Promise<void> => {
   const { messages, memory } = session
   const unobserved = messages.slice(memory.lastObservedIndex)
@@ -97,11 +97,11 @@ export const flushMemory = async (
 
   log('flush', `Observing ${unobserved.length} remaining messages`)
 
-  await runObservation(openai, session, config)
+  await runObservation(openai, session, config, memoryDir)
 
   if (memory.observationTokenCount > config.reflectionThresholdTokens) {
     try {
-      await runReflection(openai, session, config)
+      await runReflection(openai, session, config, memoryDir)
     } catch (err) {
       logError('flush', 'Reflector failed:', err)
     }

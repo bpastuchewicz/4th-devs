@@ -5,8 +5,7 @@
  * https://mastra.ai/blog/observational-memory
  */
 
-import OpenAI from 'openai'
-import type { Message, ObserverResult } from '../types.js'
+import type { Message, ObserverResult, OpenAIClient } from '../types.js'
 import { isTextMessage, isFunctionCall, isFunctionCallOutput } from '../types.js'
 import { estimateTokensRaw } from '../ai/tokens.js'
 import { truncate, extractTag } from '../helpers/utils.js'
@@ -44,7 +43,7 @@ export const parseObserverOutput = (raw: string): ObserverResult => ({
 })
 
 export const runObserver = async (
-  openai: OpenAI,
+  openai: OpenAIClient,
   model: string,
   previousObservations: string,
   messages: Message[],

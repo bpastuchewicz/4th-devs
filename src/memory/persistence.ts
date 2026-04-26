@@ -1,18 +1,18 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
-import { MEMORY_DIR } from '../config.js'
 import { log, logError } from '../helpers/log.js'
 
 const pad = (n: number): string => String(n).padStart(3, '0')
 
 const persistMemoryLog = async (
+  memoryDir: string,
   prefix: string,
   seq: number,
   body: string,
   metadata: Record<string, string | number>,
 ): Promise<void> => {
   const filename = `${prefix}-${pad(seq)}.md`
-  const path = join(MEMORY_DIR, filename)
+  const path = join(memoryDir, filename)
 
   const frontmatter = Object.entries(metadata)
     .map(([key, value]) => `${key}: ${value}`)
@@ -30,6 +30,7 @@ const persistMemoryLog = async (
 }
 
 export const persistObserverLog = async (entry: {
+  memoryDir: string
   sessionId: string
   sequence: number
   observations: string
@@ -38,7 +39,7 @@ export const persistObserverLog = async (entry: {
   generation: number
   sealedRange: [number, number]
 }): Promise<void> =>
-  persistMemoryLog('observer', entry.sequence, entry.observations, {
+  persistMemoryLog(entry.memoryDir, 'observer', entry.sequence, entry.observations, {
     type: 'observation',
     session: entry.sessionId,
     sequence: entry.sequence,
@@ -49,6 +50,7 @@ export const persistObserverLog = async (entry: {
   })
 
 export const persistReflectorLog = async (entry: {
+  memoryDir: string
   sessionId: string
   sequence: number
   observations: string
@@ -56,7 +58,7 @@ export const persistReflectorLog = async (entry: {
   generation: number
   compressionLevel: number
 }): Promise<void> =>
-  persistMemoryLog('reflector', entry.sequence, entry.observations, {
+  persistMemoryLog(entry.memoryDir, 'reflector', entry.sequence, entry.observations, {
     type: 'reflection',
     session: entry.sessionId,
     sequence: entry.sequence,

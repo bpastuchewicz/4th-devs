@@ -1,6 +1,6 @@
 import OpenAI from 'openai'
 import { join } from 'node:path'
-import type { MemoryConfig } from './types.js'
+import type { MemoryConfig } from '../../src/types.js'
 import { AI_API_KEY, CHAT_API_BASE_URL, EXTRA_API_HEADERS, resolveModelForProvider } from '../../src/config.js'
 
 export { resolveModelForProvider }
@@ -18,14 +18,17 @@ export const SERVER_PORT = 3001
 export const DEFAULT_AGENT_NAME = 'alice'
 export const AGENT_MAX_TURNS = 25
 
-export const TOKEN_CHARS_PER_TOKEN = 4
-export const TOKEN_SAFETY_MARGIN = 1.2
-
-export const OBSERVER_MAX_SECTION_CHARS = 6_000
-export const OBSERVER_MAX_TOOL_PAYLOAD_CHARS = 3_000
-export const OBSERVER_MAX_OUTPUT_TOKENS = 8_000
-
-export const REFLECTOR_MAX_OUTPUT_TOKENS = 10_000
+// ---------------------------------------------------------------------------
+// Stałe tokenowe i limitowe — re-eksport z globalnego src/config.ts
+// ---------------------------------------------------------------------------
+export {
+  TOKEN_CHARS_PER_TOKEN,
+  TOKEN_SAFETY_MARGIN,
+  OBSERVER_MAX_SECTION_CHARS,
+  OBSERVER_MAX_TOOL_PAYLOAD_CHARS,
+  OBSERVER_MAX_OUTPUT_TOKENS,
+  REFLECTOR_MAX_OUTPUT_TOKENS,
+} from '../../src/config.js'
 
 export const MEMORY_DIR = join(WORKSPACE, 'memory')
 

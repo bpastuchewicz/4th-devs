@@ -3,10 +3,10 @@ import { serve } from '@hono/node-server'
 import { cors } from 'hono/cors'
 import { randomUUID } from 'node:crypto'
 import { runAgent } from './agent/agent.js'
-import { flushMemory } from './memory/processor.js'
-import { openai, SERVER_PORT, DEFAULT_AGENT_NAME } from './config.js'
-import { truncate } from './helpers/utils.js'
-import { log, logError } from './helpers/log.js'
+import { flushMemory } from '../../src/memory/processor.js'
+import { openai, SERVER_PORT, DEFAULT_AGENT_NAME, MEMORY_DIR, DEFAULT_MEMORY_CONFIG } from './config.js'
+import { truncate } from '../../src/helpers/utils.js'
+import { log, logError } from '../../src/helpers/log.js'
 import { getSession, getOrCreateSession, listSessions, buildMemorySummary } from './session.js'
 
 const app = new Hono()
@@ -70,7 +70,7 @@ app.post('/api/sessions/:id/flush', async (c) => {
   log('session', `${c.req.param('id').slice(0, 8)} Flushing remaining messages to observations`)
 
   try {
-    await flushMemory(openai, session)
+    await flushMemory(openai, session, DEFAULT_MEMORY_CONFIG, MEMORY_DIR)
     return c.json({ session_id: session.id, memory: buildMemorySummary(session) })
   } catch (err) {
     logError('session', 'Flush failed:', err)

@@ -2,14 +2,14 @@ import type OpenAI from 'openai'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import matter from 'gray-matter'
-import type { AgentResult, AgentTemplate, FunctionCallItem, Session } from '../types.js'
+import type { AgentResult, AgentTemplate, FunctionCallItem, Session } from '../../../src/types.js'
 import { findTool, resolveAgentTools } from './tools.js'
-import { processMemory } from '../memory/processor.js'
-import { estimateMessagesTokens, trackUsage, getCalibration } from '../ai/tokens.js'
-import { openai, resolveModelForProvider, WORKSPACE, AGENT_MAX_TURNS, DEFAULT_MEMORY_CONFIG, DEFAULT_AGENT_NAME } from '../config.js'
-import { ResponseOutputItem, getResponseMessageText } from '../ai/response.js'
-import { truncate, parseArgs, formatError } from '../helpers/utils.js'
-import { log, logError } from '../helpers/log.js'
+import { processMemory } from '../../../src/memory/processor.js'
+import { estimateMessagesTokens, trackUsage, getCalibration } from '../../../src/ai/tokens.js'
+import { openai, resolveModelForProvider, WORKSPACE, AGENT_MAX_TURNS, DEFAULT_MEMORY_CONFIG, DEFAULT_AGENT_NAME, MEMORY_DIR } from '../config.js'
+import { ResponseOutputItem, getResponseMessageText } from '../../../src/ai/response.js'
+import { truncate, parseArgs, formatError } from '../../../src/helpers/utils.js'
+import { log, logError } from '../../../src/helpers/log.js'
 
 const loadAgent = async (name: string): Promise<AgentTemplate> => {
   const raw = await readFile(join(WORKSPACE, 'agents', `${name}.agent.md`), 'utf-8')
@@ -82,7 +82,7 @@ export const runAgent = async (
   })
 
   for (let turn = 0; turn < AGENT_MAX_TURNS; turn += 1) {
-    const context = await processMemory(openai, session, template.systemPrompt, DEFAULT_MEMORY_CONFIG)
+    const context = await processMemory(openai, session, template.systemPrompt, DEFAULT_MEMORY_CONFIG, MEMORY_DIR)
     const estimated = estimateMessagesTokens(context.messages, cal)
     log('agent', `Turn ${turn + 1}, ${context.messages.length} items (~${estimated.safe} tokens)`)
 

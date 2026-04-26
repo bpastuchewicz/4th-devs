@@ -1,5 +1,4 @@
-import type OpenAI from 'openai'
-import type { MemoryConfig, Session } from '../types.js'
+import type { MemoryConfig, Session, OpenAIClient } from '../types.js'
 import { estimateTokens } from '../ai/tokens.js'
 import { resolveModelForProvider } from '../config.js'
 import { log } from '../helpers/log.js'
@@ -12,9 +11,10 @@ const MIN_TAIL_BUDGET = 120
 const OBSERVATION_TAIL_RATIO = 0.3
 
 export const runObservation = async (
-  openai: OpenAI,
+  openai: OpenAIClient,
   session: Session,
   config: MemoryConfig,
+  memoryDir: string,
 ): Promise<void> => {
   const { messages, memory } = session
   const unobserved = messages.slice(memory.lastObservedIndex)
@@ -48,6 +48,7 @@ export const runObservation = async (
 
   memory.observerLogSeq += 1
   await persistObserverLog({
+    memoryDir,
     sessionId: session.id,
     sequence: memory.observerLogSeq,
     observations: observed.observations,
@@ -59,9 +60,10 @@ export const runObservation = async (
 }
 
 export const runReflection = async (
-  openai: OpenAI,
+  openai: OpenAIClient,
   session: Session,
   config: MemoryConfig,
+  memoryDir: string,
 ): Promise<void> => {
   const { memory } = session
 
@@ -82,6 +84,7 @@ export const runReflection = async (
 
   memory.reflectorLogSeq += 1
   await persistReflectorLog({
+    memoryDir,
     sessionId: session.id,
     sequence: memory.reflectorLogSeq,
     observations: reflected.observations,

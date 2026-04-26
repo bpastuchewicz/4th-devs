@@ -1,5 +1,5 @@
-import { freshMemory } from './types.js'
-import type { Session } from './types.js'
+import { freshMemory } from '../../src/types.js'
+import type { Session } from '../../src/types.js'
 
 const sessions = new Map<string, Session>()
 

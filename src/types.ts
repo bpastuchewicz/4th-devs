@@ -1,6 +1,22 @@
-// Re-eksport z globalnego src/types.ts — użyj tamtego pliku bezpośrednio.
-export * from '../../src/types.js'
+/**
+ * Wspólne typy używane przez moduły ai/, memory/ i lekcje agentowe.
+ */
 
+// ---------------------------------------------------------------------------
+// Minimal OpenAI client interface — avoids dual-package type mismatch when
+// lessons install their own `openai` in a separate node_modules tree.
+// ---------------------------------------------------------------------------
+export interface OpenAIResponsesCreate {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  create(params: Record<string, unknown>): Promise<any>
+}
+
+export interface OpenAIClient {
+  responses: OpenAIResponsesCreate
+}
+
+// ---------------------------------------------------------------------------
+export type TextMessage = {
   role: 'user' | 'assistant' | 'system' | 'developer'
   content: string | null
 }

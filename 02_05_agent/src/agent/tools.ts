@@ -1,8 +1,8 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { join, resolve, relative, dirname } from 'node:path'
-import type { Tool, ResolvedTool } from '../types.js'
+import type { Tool, ResolvedTool } from '../../../src/types.js'
 import { WORKSPACE } from '../config.js'
-import { formatError } from '../helpers/utils.js'
+import { formatError } from '../../../src/helpers/utils.js'
 
 const isPathSafe = (path: string): boolean => {
   const fullPath = resolve(join(WORKSPACE, path))
