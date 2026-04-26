@@ -236,7 +236,7 @@ const deduplicateGlobal = (allEntities, allRelationships, chunkEntities) => {
  * Batch extraction for multiple chunks.
  * Runs sequentially to respect rate limits, then deduplicates globally.
  */
-const EXTRACTION_CONCURRENCY = 5;
+const EXTRACTION_CONCURRENCY = 10;
 
 export const extractFromChunks = async (chunks) => {
   const allEntities = new Array(chunks.length).fill(null).map(() => []);

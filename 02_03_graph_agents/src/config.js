@@ -3,7 +3,7 @@ import { resolveModelForProvider } from "../../config.js";
 export const api = {
   model: resolveModelForProvider("gpt-5.2"),
   maxOutputTokens: 16384,
-  reasoning: { effort: "medium", summary: "auto" },
+  reasoning: null,
   instructions: `You are a knowledge assistant that answers questions by searching and exploring a graph-based knowledge base. Documents are chunked, indexed, and connected through a graph of entities and relationships.
 
 ## TOOLS
