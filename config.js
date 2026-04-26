@@ -580,6 +580,9 @@ if (AI_PROVIDER === "copilot") {
     // Parse and translate request body
     const reqBody = JSON.parse(options.body ?? "{}");
     const messages = _inputToMessages(reqBody.input);
+    if (reqBody.instructions) {
+      messages.unshift({ role: "system", content: reqBody.instructions });
+    }
     const responseFormat = _textFormatToResponseFormat(reqBody.text?.format);
     const tools = _translateTools(reqBody.tools);
 
