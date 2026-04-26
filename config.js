@@ -544,21 +544,30 @@ if (AI_PROVIDER === "copilot") {
   // Save the original fetch before patching
   const _originalFetch = globalThis.fetch;
 
+  // Matches any Responses API path under the Copilot base URL (/responses or /v1/responses),
+  // with optional query string. These must go through the full shim translation, not just
+  // auth-token swap, because Copilot does not support the Responses API natively.
+  const _COPILOT_RESPONSES_PATH_RE = /\/(v1\/)?responses(\?|$)/;
+
   globalThis.fetch = async (url, options = {}) => {
-    // Intercept direct calls to COPILOT_BASE_URL (e.g. from the TypeScript openai client).
-    // The openai client sends GITHUB_TOKEN as Bearer, but Copilot requires a session token.
-    // We swap it out transparently here.
     if (typeof url === "string" && url.startsWith(COPILOT_BASE_URL) && url !== COPILOT_RESPONSES_SHIM_URL) {
-      const sessionToken = await _getSessionToken();
-      const newHeaders = Object.assign({}, options.headers ?? {}, {
-        "Authorization": `Bearer ${sessionToken}`,
-        "User-Agent": "GithubCopilot/1.155.0",
-        "Editor-Version": "vscode/1.90.0",
-        "Editor-Plugin-Version": "copilot-chat/0.17.0",
-        "Openai-Intent": "conversation-panel",
-        "X-Github-Api-Version": "2023-07-07"
-      });
-      return _originalFetch(url, { ...options, headers: newHeaders });
+      // Responses API call from the SDK → reroute through the shim translation
+      if (_COPILOT_RESPONSES_PATH_RE.test(url)) {
+        url = COPILOT_RESPONSES_SHIM_URL;
+        // falls through to shim handling below
+      } else {
+        // Any other Copilot endpoint: just swap GITHUB_TOKEN → session token
+        const sessionToken = await _getSessionToken();
+        const newHeaders = Object.assign({}, options.headers ?? {}, {
+          "Authorization": `Bearer ${sessionToken}`,
+          "User-Agent": "GithubCopilot/1.155.0",
+          "Editor-Version": "vscode/1.90.0",
+          "Editor-Plugin-Version": "copilot-chat/0.17.0",
+          "Openai-Intent": "conversation-panel",
+          "X-Github-Api-Version": "2023-07-07"
+        });
+        return _originalFetch(url, { ...options, headers: newHeaders });
+      }
     }
 
     // Only intercept calls to our virtual Copilot shim URL

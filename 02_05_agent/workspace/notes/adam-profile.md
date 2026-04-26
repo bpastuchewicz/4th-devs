@@ -1,15 +1,20 @@
-# Adam Profile
+# Adam's Profile
 
-- Name: Adam
-- Location: Poland
-- Profession: Developer
-- Company: easy_
-- Company focus: AI-powered automation tools
-- Favorite language: TypeScript
-- Also enjoys: Rust, especially for performance-critical work
-- Current project: A presentation on agentic context engineering
-- Deadline: Next Friday
-- Key presentation topics:
-  - Observer pattern
-  - Reflector pattern
-  - Token estimation heuristics
+## Key Interests/Topics Requested
+- Observer Pattern (design pattern)
+- Reflector Pattern (context to be clarified)
+- Token Estimation Heuristics (likely in NLP or LLM context)
+
+## Interaction Style
+- Clearly enumerates topics or objectives
+- Seeks summaries and code samples
+- Interested in solid theoretical understanding connected to practical implementation
+
+## Programming Interests
+- Open to multiple programming languages (TBD)
+
+## Level of Detail
+- Yet to specify depth (beginner/intermediate/advanced)
+
+## Personalized Requests
+- Asks for custom notes and content organization
