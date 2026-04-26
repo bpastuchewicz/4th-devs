@@ -125,15 +125,21 @@ export const extractFromChunk = async (text, context = {}) => {
     .filter(Boolean)
     .join("\n");
 
-  const prompt = (contextHint
-    ? `${contextHint}\n\n---\n\n${text}`
-    : text) + "\n\nReturn valid JSON only.";
+  const userContent = `${EXTRACTION_INSTRUCTIONS}
+
+---
+
+${contextHint ? `${contextHint}\n\n---\n\n` : ""}${text}
+
+---
+
+Return ONLY valid JSON. No extra text outside the JSON object.`;
 
   try {
     const response = await chat({
       model: EXTRACTION_MODEL,
-      input: [{ role: "user", content: prompt }],
-      instructions: EXTRACTION_INSTRUCTIONS,
+      input: [{ role: "user", content: userContent }],
+      instructions: null,
       tools: [],
       reasoning: null,
       maxOutputTokens: 4096,
@@ -142,8 +148,11 @@ export const extractFromChunk = async (text, context = {}) => {
     const raw = extractText(response);
     if (!raw) return { entities: [], relationships: [] };
 
-    const cleaned = raw.replace(/^```json?\n?/i, "").replace(/\n?```$/i, "").trim();
-    const parsed = JSON.parse(cleaned);
+    // Extract the first {...} block, ignoring any surrounding text or markdown fences
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return { entities: [], relationships: [] };
+
+    const parsed = JSON.parse(jsonMatch[0]);
 
     return normalizeExtraction({
       entities: parsed.entities ?? [],
