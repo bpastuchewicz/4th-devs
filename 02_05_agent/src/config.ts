@@ -1,8 +1,7 @@
 import OpenAI from 'openai'
 import { join } from 'node:path'
 import type { MemoryConfig } from './types.js'
-// @ts-ignore — root config is untyped JS
-import { AI_API_KEY, CHAT_API_BASE_URL, EXTRA_API_HEADERS, resolveModelForProvider } from '../../config.js'
+import { AI_API_KEY, CHAT_API_BASE_URL, EXTRA_API_HEADERS, resolveModelForProvider } from '../../src/config.js'
 
 export { resolveModelForProvider }
 

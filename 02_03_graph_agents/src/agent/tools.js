@@ -16,6 +16,7 @@
 
 import { hybridSearch, getEntitiesForChunks, getNeighbors, findPaths, safeReadCypher } from "../graph/search.js";
 import { indexFile, indexText, removeDocument, auditGraph, mergeEntities } from "../graph/indexer.js";
+import { callMcpTool } from "../mcp/client.js";
 
 import { readdir } from "fs/promises";
 import { join } from "path";
@@ -243,8 +244,9 @@ const WORKSPACE_DIR = "workspace";
 
 /**
  * @param {import("neo4j-driver").Driver} driver
+ * @param {import("@modelcontextprotocol/sdk/client/index.js").Client} [mcpFilesClient]
  */
-export const createTools = (driver) => {
+export const createTools = (driver, mcpFilesClient) => {
   const handlers = {
     search: async ({ keywords, semantic, limit = 5 }) => {
       const chunks = await hybridSearch(driver, { keywords, semantic }, Math.min(limit, 20));
@@ -252,7 +254,7 @@ export const createTools = (driver) => {
       // Enrich: find entities mentioned in returned chunks
       const { chunkEntities, allEntities } = await getEntitiesForChunks(driver, chunks);
 
-      return {
+      const result = {
         chunks: chunks.map((c) => {
           const key = `${c.source}::${c.chunkIndex}`;
           return {
@@ -264,6 +266,50 @@ export const createTools = (driver) => {
         }),
         entities: allEntities,
       };
+
+      // Auto-save results to workspace via MCP files
+      if (mcpFilesClient && result.chunks.length > 0) {
+        try {
+          const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+          const slug = keywords.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+          const filePath = `workspace/results/${timestamp}_${slug}.md`;
+
+          const lines = [
+            `# Search results: ${keywords}`,
+            ``,
+            `**Query:** ${keywords}  `,
+            `**Semantic:** ${semantic}  `,
+            `**Date:** ${new Date().toISOString()}`,
+            ``,
+            ...result.chunks.map((c, i) =>
+              [
+                `## ${i + 1}. ${c.section || c.source}`,
+                ``,
+                `**Source:** \`${c.source}\`  `,
+                `**Section:** ${c.section}`,
+                c.entities.length ? `**Entities:** ${c.entities.join(", ")}` : "",
+                ``,
+                c.content,
+                ``,
+                `---`,
+                ``,
+              ].filter((l) => l !== undefined).join("\n")
+            ),
+          ];
+
+          await callMcpTool(mcpFilesClient, "fs_write", {
+            path: filePath,
+            operation: "create",
+            content: lines.join("\n"),
+          });
+
+          log.success(`Results saved → ${filePath}`);
+        } catch (err) {
+          log.info(`⚠ Could not save results: ${err.message}`);
+        }
+      }
+
+      return result;
     },
 
     explore: async ({ entity, limit = 20 }) => {

@@ -13,6 +13,7 @@ import { createReadline, runRepl } from "./src/repl.js";
 import { onShutdown } from "./src/helpers/shutdown.js";
 import { logStats } from "./src/helpers/stats.js";
 import log from "./src/helpers/logger.js";
+import { createMcpClient } from "./src/mcp/client.js";
 
 const main = async () => {
   log.box("Graph RAG Agent\nCommands: 'exit' | 'clear' | 'reindex' | 'reindex --force'");
@@ -36,8 +37,13 @@ const main = async () => {
   await indexWorkspace(driver, "workspace");
   log.success("Indexing complete");
 
-  // 4. Agent tools
-  const tools = createTools(driver);
+  // 4. MCP files client
+  log.start("Connecting to MCP files server...");
+  const mcpFilesClient = await createMcpClient("files");
+  log.success("MCP files server connected");
+
+  // 5. Agent tools
+  const tools = createTools(driver, mcpFilesClient);
 
   // 5. REPL
   const rl = createReadline();
