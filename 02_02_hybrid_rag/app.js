@@ -12,6 +12,7 @@ import { createReadline, runRepl } from "./src/repl.js";
 import { onShutdown } from "./src/helpers/shutdown.js";
 import { logStats } from "./src/helpers/stats.js";
 import log from "./src/helpers/logger.js";
+import { createMcpClient } from "./src/mcp/client.js";
 
 const main = async () => {
   log.box("Hybrid RAG Agent\nCommands: 'exit' | 'clear' | 'reindex'");
@@ -26,8 +27,13 @@ const main = async () => {
   await indexWorkspace(db, "workspace");
   log.success("Indexing complete");
 
-  // 3. Agent tools
-  const tools = createTools(db);
+  // 3. MCP files client
+  log.start("Connecting to MCP files server...");
+  const mcpClient = await createMcpClient("files");
+  log.success("MCP files server connected");
+
+  // 4. Agent tools
+  const tools = createTools(db, mcpClient);
 
   // 4. REPL
   const rl = createReadline();

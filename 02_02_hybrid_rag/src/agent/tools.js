@@ -1,9 +1,11 @@
 /**
  * Native tools for the agent.
  * Provides a single hybrid search tool over the indexed document database.
+ * Search results are automatically saved to the workspace via MCP files server.
  */
 
 import { hybridSearch } from "../db/search.js";
+import { callMcpTool } from "../mcp/client.js";
 import log from "../helpers/logger.js";
 
 const SEARCH_TOOL = {
@@ -40,18 +42,62 @@ const SEARCH_TOOL = {
  * Creates the tool interface consumed by the agent.
  *
  * @param {import("better-sqlite3").Database} db
+ * @param {import("@modelcontextprotocol/sdk/client/index.js").Client} mcpClient
  * @returns {{ definitions: object[], handle: (name: string, args: object) => Promise<any> }}
  */
-export const createTools = (db) => {
+export const createTools = (db, mcpClient) => {
   const handlers = {
     search: async ({ keywords, semantic, limit = 5 }) => {
       const results = await hybridSearch(db, { keywords, semantic }, Math.min(limit, 20));
 
-      return results.map((r) => ({
+      const mapped = results.map((r) => ({
         source: r.source,
         section: r.section,
         content: r.content,
       }));
+
+      // Auto-save results to workspace via MCP files
+      if (mcpClient && mapped.length > 0) {
+        try {
+          const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+          const slug = keywords.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+          const filePath = `results/${timestamp}_${slug}.md`;
+
+          const lines = [
+            `# Search results: ${keywords}`,
+            ``,
+            `**Query:** ${keywords}  `,
+            `**Semantic:** ${semantic}  `,
+            `**Date:** ${new Date().toISOString()}`,
+            ``,
+            ...mapped.map((r, i) =>
+              [
+                `## ${i + 1}. ${r.section || r.source}`,
+                ``,
+                `**Source:** \`${r.source}\`  `,
+                `**Section:** ${r.section}`,
+                ``,
+                r.content,
+                ``,
+                `---`,
+                ``,
+              ].join("\n")
+            ),
+          ];
+
+          await callMcpTool(mcpClient, "fs_write", {
+            path: filePath,
+            operation: "create",
+            content: lines.join("\n"),
+          });
+
+          log.success(`Results saved → ${filePath}`);
+        } catch (err) {
+          log.warn?.(`Could not save results: ${err.message}`) ?? log.info(`⚠ Could not save results: ${err.message}`);
+        }
+      }
+
+      return mapped;
     },
   };
 
