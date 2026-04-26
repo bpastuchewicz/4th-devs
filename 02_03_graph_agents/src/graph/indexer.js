@@ -114,9 +114,10 @@ const indexContent = async (driver, content, source) => {
 
   // 5. Write to Neo4j
   await writeTransaction(driver, async (tx) => {
-    // Document node
+    // Document node (MERGE to guard against partial re-runs that left a stale node)
     await tx.run(
-      `CREATE (d:Document {source: $source, hash: $hash, indexedAt: datetime()})`,
+      `MERGE (d:Document {source: $source})
+       SET d.hash = $hash, d.indexedAt = datetime()`,
       { source, hash }
     );
 

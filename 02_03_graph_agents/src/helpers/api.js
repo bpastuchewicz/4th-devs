@@ -9,7 +9,8 @@ export const chat = async ({
   toolChoice = "auto", 
   instructions = api.instructions, 
   maxOutputTokens = api.maxOutputTokens,
-  reasoning = api.reasoning
+  reasoning = api.reasoning,
+  responseFormat = null
 }) => {
   const body = { model, input };
 
@@ -18,6 +19,7 @@ export const chat = async ({
   if (instructions) body.instructions = instructions;
   if (maxOutputTokens) body.max_output_tokens = maxOutputTokens;
   if (reasoning !== null && reasoning !== undefined) body.reasoning = reasoning;
+  if (responseFormat) body.text = { format: responseFormat };
 
   const response = await fetch(RESPONSES_API_ENDPOINT, {
     method: "POST",

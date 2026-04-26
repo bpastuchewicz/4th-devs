@@ -10,6 +10,7 @@
  */
 
 import { chat, extractText } from "../helpers/api.js";
+import { api } from "../config.js";
 import log from "../helpers/logger.js";
 
 // ── Allowed enums (anything outside gets mapped) ───────────────
@@ -65,7 +66,7 @@ Return ONLY valid JSON matching this schema — no markdown fences, no explanati
 - Extract 3-15 entities per chunk (skip trivial ones)
 - Every relationship needs both source and target in the entities list`;
 
-const EXTRACTION_MODEL = "gpt-5-mini";
+const EXTRACTION_MODEL = api.model;
 
 // ── Post-processing ────────────────────────────────────────────
 
@@ -124,9 +125,9 @@ export const extractFromChunk = async (text, context = {}) => {
     .filter(Boolean)
     .join("\n");
 
-  const prompt = contextHint
+  const prompt = (contextHint
     ? `${contextHint}\n\n---\n\n${text}`
-    : text;
+    : text) + "\n\nReturn valid JSON only.";
 
   try {
     const response = await chat({
@@ -136,6 +137,7 @@ export const extractFromChunk = async (text, context = {}) => {
       tools: [],
       reasoning: null,
       maxOutputTokens: 4096,
+      responseFormat: { type: "json_object" },
     });
 
     const raw = extractText(response);
@@ -226,33 +228,48 @@ const deduplicateGlobal = (allEntities, allRelationships, chunkEntities) => {
  * Batch extraction for multiple chunks.
  * Runs sequentially to respect rate limits, then deduplicates globally.
  */
+const EXTRACTION_CONCURRENCY = 5;
+
 export const extractFromChunks = async (chunks) => {
-  const allEntities = [];
-  const allRelationships = [];
+  const allEntities = new Array(chunks.length).fill(null).map(() => []);
+  const allRelationships = new Array(chunks.length).fill(null).map(() => []);
   const chunkEntities = new Map();
 
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    process.stdout.write(`  extracting: ${i + 1}/${chunks.length}\r`);
+  let completed = 0;
 
+  const tasks = chunks.map((chunk, i) => async () => {
     const { entities, relationships } = await extractFromChunk(chunk.content, {
       section: chunk.metadata.section,
       source: chunk.metadata.source,
     });
-
+    allEntities[i] = entities;
+    allRelationships[i] = relationships;
     chunkEntities.set(i, entities.map((e) => e.name));
-    allEntities.push(...entities);
-    allRelationships.push(...relationships);
-  }
+    completed++;
+    process.stdout.write(`  extracting: ${completed}/${chunks.length}\r`);
+  });
+
+  // Run with limited concurrency
+  const queue = [...tasks];
+  const workers = Array.from({ length: Math.min(EXTRACTION_CONCURRENCY, queue.length) }, async () => {
+    while (queue.length) {
+      const task = queue.shift();
+      if (task) await task();
+    }
+  });
+  await Promise.all(workers);
 
   if (chunks.length > 1) console.log();
 
+  const flatEntities = allEntities.flat();
+  const flatRelationships = allRelationships.flat();
+
   // Global dedup pass
-  const deduped = deduplicateGlobal(allEntities, allRelationships, chunkEntities);
+  const deduped = deduplicateGlobal(flatEntities, flatRelationships, chunkEntities);
 
   log.info(
-    `Extracted ${allEntities.length} raw → ${deduped.entities.length} unique entities, ` +
-    `${allRelationships.length} raw → ${deduped.relationships.length} unique relationships`
+    `Extracted ${flatEntities.length} raw → ${deduped.entities.length} unique entities, ` +
+    `${flatRelationships.length} raw → ${deduped.relationships.length} unique relationships`
   );
 
   return deduped;
