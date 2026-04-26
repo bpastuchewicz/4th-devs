@@ -10,3 +10,4 @@ workspace/input/*.png
 workspace/input/*.jpg
 workspace/input/*.jpeg
 workspace/input/*.webp
+workspace/*

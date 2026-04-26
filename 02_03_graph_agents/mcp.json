@@ -5,7 +5,8 @@
       "args": ["tsx", "../mcp/files-mcp/src/index.ts"],
       "env": {
         "LOG_LEVEL": "info",
-        "FS_ROOT": "./workspace"
+        "FS_ROOT": ".",
+        "FS_ROOTS": "./workspace"
       }
     },
     "symfony-stdio": {
