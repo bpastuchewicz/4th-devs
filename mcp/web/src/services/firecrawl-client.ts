@@ -155,10 +155,148 @@ export class FirecrawlClient {
     this.retryAfterMs = config.RATE_LIMIT_RETRY_AFTER_MS;
   }
 
+  private toMarkdownFromHtml(html: string): string {
+    return html
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
+      .replace(/<\s*br\s*\/?\s*>/gi, '\n')
+      .replace(/<\s*\/\s*p\s*>/gi, '\n\n')
+      .replace(/<\s*\/\s*(h1|h2|h3|h4|h5|h6|li|div|section|article|main)\s*>/gi, '\n')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/\r\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
+  }
+
+  private extractLinks(html: string, baseUrl: string): string[] {
+    const links: string[] = [];
+    const hrefRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
+    let match: RegExpExecArray | null;
+
+    while ((match = hrefRegex.exec(html)) !== null) {
+      const raw = match[1];
+      if (!raw || raw.startsWith('#') || raw.startsWith('javascript:')) {
+        continue;
+      }
+      try {
+        links.push(new URL(raw, baseUrl).toString());
+      } catch {
+        // Ignore malformed URLs
+      }
+      if (links.length >= 200) {
+        break;
+      }
+    }
+
+    return Array.from(new Set(links));
+  }
+
+  private extractTitle(html: string): string | undefined {
+    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    if (!titleMatch) {
+      return undefined;
+    }
+    const rawTitle = titleMatch[1];
+    if (!rawTitle) {
+      return undefined;
+    }
+    return this.toMarkdownFromHtml(rawTitle);
+  }
+
+  private extractMetaDescription(html: string): string | undefined {
+    const metaMatch = html.match(
+      /<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+    );
+    return metaMatch?.[1];
+  }
+
+  private normalizeDuckDuckGoUrl(rawUrl: string): string {
+    try {
+      const parsed = new URL(rawUrl, 'https://duckduckgo.com');
+      const uddg = parsed.searchParams.get('uddg');
+      if (uddg) {
+        return decodeURIComponent(uddg);
+      }
+      return parsed.toString();
+    } catch {
+      return rawUrl;
+    }
+  }
+
+  private parseDuckDuckGoResults(html: string, limit: number): FirecrawlSearchResult['data'] {
+    const web: NonNullable<FirecrawlSearchResult['data']>['web'] = [];
+    const resultRegex =
+      /<a[^>]*class=["'][^"']*result__a[^"']*["'][^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>[\s\S]*?(?:<a[^>]*class=["'][^"']*result__snippet[^"']*["'][^>]*>([\s\S]*?)<\/a>|<div[^>]*class=["'][^"']*result__snippet[^"']*["'][^>]*>([\s\S]*?)<\/div>)?/gi;
+
+    let match: RegExpExecArray | null;
+    while ((match = resultRegex.exec(html)) !== null && web.length < limit) {
+      const rawUrl = match[1];
+      const rawTitle = match[2];
+      if (!rawUrl || !rawTitle) {
+        continue;
+      }
+
+      const url = this.normalizeDuckDuckGoUrl(rawUrl);
+      const title = this.toMarkdownFromHtml(rawTitle);
+      const description = this.toMarkdownFromHtml(match[3] ?? match[4] ?? '');
+
+      web.push({
+        url,
+        title,
+        description,
+        position: web.length + 1,
+      });
+    }
+
+    return { web, images: [], news: [] };
+  }
+
   /**
    * Scrape a single URL
    */
   async scrape(url: string, options: ScrapeOptions = {}): Promise<FirecrawlScrapeResult> {
+    if (config.SEARCH_PROVIDER === 'duckduckgo') {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; web-mcp/1.0)',
+          Accept: 'text/html,application/xhtml+xml',
+        },
+      });
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: `HTTP ${response.status} while fetching ${url}`,
+        };
+      }
+
+      const html = await response.text();
+      const links = this.extractLinks(html, url);
+      const markdown = this.toMarkdownFromHtml(html);
+
+      return {
+        success: true,
+        data: {
+          markdown,
+          html: options.formats?.includes('html') ? html : undefined,
+          rawHtml: options.formats?.includes('rawHtml') ? html : undefined,
+          links: options.formats?.includes('links') ? links : undefined,
+          metadata: {
+            title: this.extractTitle(html),
+            description: this.extractMetaDescription(html),
+            sourceURL: url,
+            statusCode: response.status,
+          },
+        },
+      };
+    }
+
     const body = {
       url,
       formats: options.formats ?? ['markdown'],
@@ -181,6 +319,22 @@ export class FirecrawlClient {
     options: ScrapeOptions = {},
     onProgress?: (completed: number, total: number) => void,
   ): Promise<FirecrawlScrapeResult['data'][]> {
+    if (config.SEARCH_PROVIDER === 'duckduckgo') {
+      const results: FirecrawlScrapeResult['data'][] = [];
+      let completed = 0;
+      for (const targetUrl of urls) {
+        const item = await this.scrape(targetUrl, options);
+        if (item.success && item.data) {
+          results.push(item.data);
+        }
+        completed += 1;
+        if (onProgress) {
+          onProgress(completed, urls.length);
+        }
+      }
+      return results;
+    }
+
     // Start batch job
     const body = {
       urls,
@@ -260,6 +414,31 @@ export class FirecrawlClient {
    * Search the web
    */
   async search(query: string, options: SearchOptions = {}): Promise<FirecrawlSearchResult> {
+    if (config.SEARCH_PROVIDER === 'duckduckgo') {
+      const limit = options.limit ?? 10;
+      const ddgUrl = `https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+
+      const response = await fetch(ddgUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; web-mcp/1.0)',
+          Accept: 'text/html,application/xhtml+xml',
+        },
+      });
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: `DuckDuckGo request failed with HTTP ${response.status}`,
+        };
+      }
+
+      const html = await response.text();
+      return {
+        success: true,
+        data: this.parseDuckDuckGoResults(html, limit),
+      };
+    }
+
     const body: Record<string, unknown> = {
       query,
       limit: options.limit ?? 10,

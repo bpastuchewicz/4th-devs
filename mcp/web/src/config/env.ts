@@ -21,7 +21,8 @@ export interface Config {
   // Logging
   readonly LOG_LEVEL: LogLevel;
 
-  // Firecrawl API configuration
+  // Search backend configuration
+  readonly SEARCH_PROVIDER: 'duckduckgo' | 'firecrawl';
   readonly FIRECRAWL_API_KEY: string;
   readonly FIRECRAWL_API_URL: string;
 
@@ -52,9 +53,12 @@ function parseOutputMode(value: string | undefined): OutputMode {
 }
 
 function loadConfig(): Config {
+  const providerEnv = process.env['WEB_SEARCH_PROVIDER']?.toLowerCase();
+  const provider = providerEnv === 'firecrawl' ? 'firecrawl' : 'duckduckgo';
   const apiKey = process.env['FIRECRAWL_API_KEY'];
-  if (!apiKey) {
-    console.error('Warning: FIRECRAWL_API_KEY is not set. API calls will fail.');
+
+  if (provider === 'firecrawl' && !apiKey) {
+    console.error('Warning: WEB_SEARCH_PROVIDER=firecrawl requires FIRECRAWL_API_KEY.');
   }
 
   return {
@@ -62,15 +66,17 @@ function loadConfig(): Config {
     VERSION: process.env['MCP_VERSION'] ?? '1.0.0',
     INSTRUCTIONS:
       process.env['MCP_INSTRUCTIONS'] ??
-      'Firecrawl MCP server for web scraping and search. Use scrape tool to extract content from URLs, and search tool to search the web.',
+      'Web MCP server for web scraping and search. Default provider is DuckDuckGo (no API key required).',
 
     LOG_LEVEL: parseLogLevel(process.env['LOG_LEVEL']),
+
+    SEARCH_PROVIDER: provider,
 
     FIRECRAWL_API_KEY: apiKey ?? '',
     FIRECRAWL_API_URL: process.env['FIRECRAWL_API_URL'] ?? 'https://api.firecrawl.dev/v2',
 
-    OUTPUT_MODE: parseOutputMode(process.env['FIRECRAWL_OUTPUT_MODE']),
-    OUTPUT_DIR: process.env['FIRECRAWL_OUTPUT_DIR'] ?? './firecrawl-output',
+    OUTPUT_MODE: parseOutputMode(process.env['OUTPUT_MODE'] ?? process.env['FIRECRAWL_OUTPUT_MODE']),
+    OUTPUT_DIR: process.env['OUTPUT_DIR'] ?? process.env['FIRECRAWL_OUTPUT_DIR'] ?? './web-output',
 
     // Rate limiting defaults based on Firecrawl's standard plan limits
     RATE_LIMIT_REQUESTS_PER_MINUTE: Number.parseInt(

@@ -1,5 +1,5 @@
 {
-  "at": "2026-05-16T10:31:33.128Z",
+  "at": "2026-05-16T11:53:42.851Z",
   "goal": {
     "id": "opus46-vs-gpt53-codex-note",
     "objective": "Write a decision-grade comparison note about Claude Opus 4.6 vs GPT-5.3-Codex, anchored in official pages and strengthened with selective independent evidence.",
@@ -32,7 +32,7 @@
       "project": {
         "id": "opus46-vs-gpt53-codex-note",
         "title": "Decision-Grade Comparison: Claude Opus 4.6 vs GPT-5.3-Codex",
-        "description": "A rigorously sourced, decision-grade comparison note between Claude Opus 4.6 and GPT-5.3-Codex, anchored in official documentation and strengthened with selective independent evidence, for developer and technical decision-maker audiences.",
+        "description": "A structured, evidence-based comparison of Claude Opus 4.6 and GPT-5.3-Codex, synthesizing official claims and independent validation, with actionable guidance for developers.",
         "deliverablePath": "report/final-report.md"
       },
       "agentOrder": [
@@ -56,19 +56,18 @@
           "priority": "critical",
           "dependsOn": [],
           "outputPath": "evidence/structured-evidence.json",
-          "body": "Scrape the official pages for Claude Opus 4.6 and GPT-5.3-Codex. Extract all major claims, benchmarks, and product/API updates. Run targeted web searches for independent benchmarks, developer reviews, and expert commentary that validate or contradict vendor claims. Structure all findings in a JSON file with explicit source attribution (short markdown links), tagging each claim as 'vendor-stated', 'independently-supported', or 'mixed'. Mark claims as 'not independently verified' where applicable. Output: evidence/structured-evidence.json for downstream synthesis.",
+          "body": "Scrape the official pages for Claude Opus 4.6 and GPT-5.3-Codex. Build a structured evidence file capturing all key claims, benchmarks, features, and product/API updates, each with explicit source attribution. Run targeted web searches for independent benchmarks, developer reviews, and expert commentary. For each claim, indicate if it is vendor-stated, independently supported, or not independently verified. Organize evidence by normalized axes: capabilities, benchmarks, long-context/agentic features, product/API updates. Output a JSON file with traceable sources for each claim.",
           "successCriteria": [
-            "All major claims from both official pages are extracted and attributed.",
-            "At least three independent sources per model are included if available.",
-            "Each claim is tagged for evidence quality and verification status.",
-            "All sources are cited using short markdown links.",
-            "Output is a well-structured JSON file ready for synthesis."
+            "All key claims from both official pages are captured with source links.",
+            "At least two independent sources per model for major claims, or explicit 'not independently verified' tags where missing.",
+            "Evidence is organized by normalized axes and includes source traceability.",
+            "JSON file is complete and ready for synthesis."
           ]
         },
         {
           "filename": "02-comparison-matrix.md",
           "id": "task-02-matrix",
-          "title": "Build Normalized Comparison Matrix",
+          "title": "Draft Side-by-Side Comparison Matrix",
           "owner": "planner",
           "requiredCapabilities": [
             "planning",
@@ -79,19 +78,19 @@
           "dependsOn": [
             "task-01-evidence"
           ],
-          "outputPath": "analysis/comparison-matrix.md",
-          "body": "Using evidence/structured-evidence.json, construct a side-by-side comparison matrix with normalized axes: capabilities, benchmarks, long-context/agentic features, and product/API updates. For each axis, present both models' claims, source attributions, and explicit notes on evidence quality (vendor-stated, independently-supported, mixed, or not independently verified). Output: analysis/comparison-matrix.md for use in the draft.",
+          "outputPath": "comparison/comparison-matrix.md",
+          "body": "Using the structured evidence, create a markdown table or matrix that presents a side-by-side comparison of Claude Opus 4.6 and GPT-5.3-Codex on the normalized axes: capabilities, benchmarks, long-context/agentic features, and product/API updates. Clearly mark which claims are vendor-stated, independently supported, or not independently verified. This matrix will be used as a core reference in the final report.",
           "successCriteria": [
-            "Matrix covers all required axes for both models.",
+            "Matrix covers all normalized axes for both models.",
             "Each claim is attributed and tagged for evidence quality.",
-            "Non-comparable metrics are explicitly noted.",
-            "Output is a markdown table or equivalent, ready for synthesis."
+            "No mixing of sources; all claims are clearly labeled.",
+            "Matrix is in markdown and ready for synthesis."
           ]
         },
         {
-          "filename": "03-draft-note.md",
+          "filename": "03-draft-report.md",
           "id": "task-03-draft",
-          "title": "Draft Decision-Grade Comparison Note",
+          "title": "Synthesize Draft Report with Developer Guidance",
           "owner": "writer",
           "requiredCapabilities": [
             "writing",
@@ -99,17 +98,16 @@
           ],
           "priority": "high",
           "dependsOn": [
-            "task-01-evidence",
             "task-02-matrix"
           ],
-          "outputPath": "drafts/draft-note.md",
-          "body": "Write a 900-1300 word markdown report at drafts/draft-note.md, following the required structure: Executive takeaway, side-by-side comparison (using analysis/comparison-matrix.md), independent validation/contradictions, developer implications ('best fit when...'), caveats/unknowns/non-comparable metrics, and evidence quality classification. Every factual claim must be cited using short markdown links. Include a numbered 'Sources' section. Mark all unverified claims as 'not independently verified'.",
+          "outputPath": "report/draft-report.md",
+          "body": "Write a draft report (900-1300 words) following the required structure: executive takeaway, side-by-side comparison (using the matrix), independent validation/contradictions, developer implications ('best fit when...'), caveats/unknowns/non-comparable metrics, and evidence quality classification. Every factual claim must be cited using short markdown links. Include a numbered 'Sources' section. Mark all non-independently verified claims explicitly. The draft will be reviewed for citation integrity and adherence to must_have requirements.",
           "successCriteria": [
-            "Draft is within 900-1300 words.",
-            "All claims are cited with short markdown links.",
-            "All required sections are present and complete.",
-            "Comparison matrix is integrated and source attributions are clear.",
-            "Unverified claims are explicitly labeled."
+            "Draft covers all required sections and word count.",
+            "All claims are cited with short markdown links and numbered sources.",
+            "Developer guidance and caveats are explicit and actionable.",
+            "No forbidden content is present.",
+            "Draft is ready for editorial review."
           ]
         },
         {
@@ -125,46 +123,45 @@
           "dependsOn": [
             "task-03-draft"
           ],
-          "outputPath": "drafts/edited-note.md",
-          "body": "Review drafts/draft-note.md for citation integrity, correct attribution, and explicit caveats for non-comparable metrics. Ensure all forbidden elements are absent. Refine language for clarity and neutrality. Output: drafts/edited-note.md for final assembly.",
+          "outputPath": "report/final-report.md",
+          "body": "Review the draft report for citation integrity, correct attribution, and explicit caveats for non-comparable metrics. Ensure all must_have requirements are met and forbidden content is absent. Refine language for clarity and neutrality. Approve or request fixes as needed. Output the final markdown report.",
           "successCriteria": [
-            "All claims are correctly attributed and cited.",
+            "All citations are present, correct, and traceable.",
             "All non-comparable metrics are explicitly caveated.",
-            "No forbidden content is present.",
-            "Language is neutral and decision-grade."
+            "No forbidden content or unsupported claims.",
+            "Final markdown report is ready for HTML rendering."
           ]
         },
         {
-          "filename": "05-final-assembly.md",
-          "id": "task-05-final",
-          "title": "Assemble Final Markdown and HTML Deliverables",
+          "filename": "05-html-render.md",
+          "id": "task-05-html",
+          "title": "Render Final Report to HTML",
           "owner": "editor",
           "requiredCapabilities": [
-            "editing",
             "html-render"
           ],
-          "priority": "high",
+          "priority": "medium",
           "dependsOn": [
             "task-04-editor"
           ],
-          "outputPath": "report/final-report.md",
-          "body": "Copy drafts/edited-note.md to report/final-report.md. Use the render_html tool to produce report.html in deliverables/report.html, following the project template. Ensure all sources are included and formatting is consistent.",
+          "outputPath": "deliverables/report.html",
+          "body": "Render the final markdown report to HTML using the project template and the render_html tool. Ensure formatting, links, and section structure are preserved. Output the HTML file to the deliverables directory.",
           "successCriteria": [
-            "report/final-report.md is complete and matches editorial review.",
-            "deliverables/report.html is rendered and matches the markdown.",
-            "All sources are included and formatting is consistent."
+            "HTML version matches the markdown report in content and structure.",
+            "All links and formatting are correct.",
+            "HTML file is ready for delivery."
           ]
         }
       ],
       "assumptions": [
-        "All required web pages and sources are accessible.",
-        "Sufficient independent evidence exists for at least partial validation.",
-        "The team will not exceed the max_total_tasks or step_budget_rounds."
+        "Official pages and independent sources are accessible for scraping and search.",
+        "Word count and citation requirements are strictly enforced.",
+        "All agents have access to required tools and workspace paths."
       ],
       "risks": [
-        "Some claims may lack independent corroboration, requiring explicit labeling.",
-        "Benchmarks may use non-comparable methodologies, necessitating careful caveats.",
-        "Time constraints may limit the depth of independent evidence collection."
+        "Independent corroboration may be limited for very recent model releases.",
+        "Some metrics may not be directly comparable; explicit caveats are required.",
+        "Strict citation and evidence quality tagging may increase editorial workload."
       ],
       "mustHaveCoverage": {
         "A concise side-by-side comparison of key claims using normalized axes (capabilities, benchmarks, long-context or agentic features, and product/API updates when stated).": [
@@ -172,7 +169,7 @@
         ],
         "Independent corroboration or contrast for major vendor claims, and explicit \"not independently verified\" labeling where corroboration is missing.": [
           "task-01-evidence",
-          "task-03-draft"
+          "task-02-matrix"
         ],
         "A practical \"what this means for developers\" section with \"best fit when...\" guidance and caveats about non-comparable metrics.": [
           "task-03-draft"
@@ -182,10 +179,10 @@
         ],
         "Final markdown note (target 900-1300 words) at report/final-report.md. Every factual claim must be cited using short markdown links — e.g. ([Anthropic docs](url)) — never raw URLs. Collect all sources in a numbered \"Sources\" section at the end of the report.": [
           "task-03-draft",
-          "task-05-final"
+          "task-04-editor"
         ],
         "HTML version of the final report at deliverables/report.html, rendered using the project template (render_html tool).": [
-          "task-05-final"
+          "task-05-html"
         ]
       }
     }

@@ -15,8 +15,9 @@
       "args": ["tsx", "../mcp/web/src/index.ts"],
       "env": {
         "LOG_LEVEL": "info",
-        "FIRECRAWL_OUTPUT_MODE": "file",
-        "FIRECRAWL_OUTPUT_DIR": "./workspace/project/notes/web"
+        "WEB_SEARCH_PROVIDER": "duckduckgo",
+        "OUTPUT_MODE": "file",
+        "OUTPUT_DIR": "./workspace/project/notes/web"
       }
     }
   }

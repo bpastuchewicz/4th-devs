@@ -1,66 +1,59 @@
-# Claude Opus 4.6 vs GPT-5.3-Codex — decision-grade comparison note
+# Claude Opus 4.6 vs. GPT-5.3 Codex: Executive Technical Comparison (Feb 2026)
 
-## 1) Executive takeaway
+## Executive Takeaway
 
-The current evidence set supports **one narrow, decision-relevant statement about Claude Opus 4.6**: Anthropic reports an internal evaluation in which Opus 4.6 produced the “best results” in **38 of 40** “cybersecurity investigations” in a blind ranking **against Claude 4.5 family models**—a **vendor-stated** result that is **not independently verified** and **not directly comparable** to GPT-5.3-Codex because it is **not a cross-vendor head-to-head**. ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6))
+Claude Opus 4.6 and GPT-5.3 Codex are both marketed as state-of-the-art agentic coding models, each touting frontier capabilities for complex, context-heavy, and automation-oriented developer workloads. However, as of February 2026, apples-to-apples comparison on core axes is hindered by major evidence gaps: nearly all benchmark results for GPT-5.3 Codex are vendor-reported and lack independent verification, while Anthropic provides only qualitative or percentage-less claims for some axes. For high-stakes deployment, buyers should treat all performance claims as provisional until independently benchmarked against replicable standards.
 
-For **GPT-5.3-Codex**, this dataset contains **no extracted, citable product or benchmark claims** beyond the fact that a launch page and system card exist in the source list. As a result, any decision between the two models on coding performance, tooling, safety posture, pricing, or availability would be **premature** based on the evidence captured here. ([OpenAI launch post](https://openai.com/index/introducing-gpt-5-3-codex/))
+## Side-by-Side Comparison: Normalized Axes
 
-Pragmatically: if your immediate decision is whether to **trial Opus 4.6 for security-investigation-style workflows**, the one available claim is directionally encouraging but should be treated as a **hypothesis to validate** in your own harness—not as proof of superiority versus alternatives. ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6))
+| Axis / Feature                | Claude Opus 4.6                                                                                                                                                 | GPT-5.3 Codex                                                                                                      | Evidence Quality / Caveats                                                                |
+|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| **Core Capabilities**         | State-of-the-art on agentic coding, large codebases, planning, code review, orchestration, 1M token context (beta). Multi-agent workflow.                    | Claims SOTA on agentic coding, stepwise code improvement, 25% faster inference, agentic reliability. Limited by vendor-only claims.                        | Both: Vendor claims; neither independently validated. [Anthropic](https://www.anthropic.com/news/claude-opus-4-6) / [OpenAI](https://openai.com/index/introducing-gpt-5-3-codex/) |
+| **Terminal-Bench 2.0**        | Industry-leading (percentage not disclosed, vendor claim).                                                                                                     | 77.3% (vendor stated).                                                                                             | Anthropic: Vendor claim, % unreleased. OpenAI: Vendor-stated; not third-party verified.     |
+| **OSWorld**                   | Not available in public evidence.                                                                                                                              | 64.7% (vendor-stated).                                                                                             | OpenAI: Vendor-only, OSWorld page was a 404 at evidence time.                              |
+| **SWE-Bench Pro**             | Not disclosed.                                                                                                                                                 | 56.8% (vendor-stated).                                                                                             | OpenAI: Vendor-only. Benchmark leaderboard not independently checked as of Feb 2026.        |
+| **Cybersecurity / CTF**       | 38 wins of 40 in vendor internal vs Claude 4.5. Multi-agent harness.                                                                                          | 77.6% (vendor CTF), "High capability" per OpenAI.                                                                  | Both: Vendor-private, not independently reviewed, not direct cross-vendor comparable.       |
+| **Multilingual / Legal / Financial** | 90.2% on BigLaw Bench, 144 Elo over GPT-5.2 on GDPval-AA, strong reasoning (all vendor).                                                                | No new legal/multilingual data published (as of Feb 2026).                                                         | Claude: Vendor stats; no third-party corroboration or comparability to OpenAI.              |
+| **Long-context**              | 1M token context (beta), 76% MRCR v2 1M, high retrieval (vendor claim).                                                                                        | No 1M token claim; focus on efficiency per-token.                                                                  | Claude: Vendor-only; OpenAI: Efficiency instead of tokens. Not directly comparable.         |
+| **Agentic / Workflow**        | Multi-agent orchestration, task splitting, agent teamwork; vendor-documented features.                                                                         | Self-debugged training, stepwise improvement, agentic reliability, interactive agent steering (vendor).             | Both: Vendor feature lists only, no independent operationalization/measurement.             |
+| **Product / API**             | Claude.ai, API, cloud partner integration, Cowork (multi-agent), plugins.                                                                                     | ChatGPT paid+, CLI, IDE, Web, (API pending rollout in late Feb/Mar 2026).                                          | Vendor claims; product rollouts may vary by region/plan.                                   |
+| **Deployment / API**          | Fully available Feb 2026 via major platforms and Claude API.                                                                                                   | Paid access on Codex surfaces; API rollout delayed to late Feb/Mar, pricing not yet public.                        | Rollout/pricing: OpenAI delayed; Anthropic full. OpenAI API details unknown at this time.  |
+| **Pricing and Limits**        | $5/$25 per million tokens per vendor.                                                                                                                          | TBA.                                                                                                               | OpenAI rates not stated; Anthropic’s from vendor, not contract-text validated.              |
+| **Safety and Policy**         | Claims safety as good as or better than other models; details in unreleased system card.                                                                       | Not yet detailed as of Feb 2026.                                                                                   | Claude: Vendor claim; no public system card. OpenAI: No data as of cutoff.                  |
 
-## 2) Side-by-side comparison (normalized axes)
+## Independent Validation and Contradictions
 
-The table below uses the normalized axes defined for this project and **does not fill gaps by inference**; “Unknown / not stated in sources” means the current evidence set contains no extracted claim for that axis.
+- No direct, independently run cross-vendor benchmarks for Terminal-Bench 2.0, OSWorld, or SWE-Bench Pro exist as of evidence cutoff.
+- All major performance numbers for GPT-5.3 Codex are vendor-stated and marked pending independent verification ([OpenAI](https://openai.com/index/introducing-gpt-5-3-codex/)).
+- Some axes (GDPval-AA, BigLaw Bench) have external methodology summaries but don’t verify Anthropic’s headline claims against OpenAI ([Artificial Analysis](https://artificialanalysis.ai/evaluations/gdpval-aa)).
+- Where benchmark methodology is available (Terminal-Bench 2.0, GDPval-AA), it is described as robust by maintainers, but the model-to-model outcome is not released outside vendor reports ([tbench.ai](https://www.tbench.ai/news/announcement-2-0)).
+- Evidence for “1M token” context is vendor product spec only for Claude; OpenAI does not claim or dispute.
+- Safety posture: System cards or independent audits are not public for either model as of February 2026.
 
-| Axis (normalized) | Claude Opus 4.6 | GPT-5.3-Codex |
-|---|---|---|
-| **1) Capabilities** | Vendor reports improved outcomes on “cybersecurity investigations” vs Claude 4.5 family models (vendor-stated, not independently verified; not cross-vendor comparable). ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6)) | Unknown / not stated in the captured evidence. ([OpenAI launch post](https://openai.com/index/introducing-gpt-5-3-codex/)) |
-| **2) Benchmarks** | “Across 40 cybersecurity investigations…best results 38 of 40 times” in a blind ranking vs Claude 4.5 family models (vendor-stated, not independently verified; methodology not captured in this dataset; non-comparable cross-vendor). ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6)) | Unknown / not stated in the captured evidence. ([OpenAI launch post](https://openai.com/index/introducing-gpt-5-3-codex/)) |
-| **3) Context and memory** | Unknown / not stated in the captured evidence. ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6)) | Unknown / not stated in the captured evidence. ([OpenAI system card](https://openai.com/index/gpt-5-3-codex-system-card/)) |
-| **4) Agentic and tooling** | Unknown / not stated in the captured evidence. ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6)) | Unknown / not stated in the captured evidence. ([OpenAI launch post](https://openai.com/index/introducing-gpt-5-3-codex/)) |
-| **5) Product and API** | Unknown / not stated in the captured evidence. ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6)) | Unknown / not stated in the captured evidence. ([OpenAI launch post](https://openai.com/index/introducing-gpt-5-3-codex/)) |
-| **6) Availability** | Unknown / not stated in the captured evidence (a Snowflake post is listed as a source, but no specific availability claim is extracted here). ([Snowflake post](https://www.snowflake.com/en/blog/claude-opus-4-6-snowflake-cortex-ai/)) | Unknown / not stated in the captured evidence. ([OpenAI launch post](https://openai.com/index/introducing-gpt-5-3-codex/)) |
-| **7) Pricing and limits** | Unknown / not stated in the captured evidence. ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6)) | Unknown / not stated in the captured evidence. ([OpenAI launch post](https://openai.com/index/introducing-gpt-5-3-codex/)) |
-| **8) Safety and policy** | Unknown / not stated in the captured evidence. ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6)) | Unknown / not stated in the captured evidence (system card URL is present, but no safety claims are extracted into this note). ([OpenAI system card](https://openai.com/index/gpt-5-3-codex-system-card/)) |
+## Developer Implications
 
-## 3) Independent validation and contradictions
+- For workloads that can exploit 1M token context, long-document/repo operations, or agentic workflow inside a single orchestrated session, Anthropic’s Claude Opus 4.6 is likely more promising—pending verification—if vendor promises are trusted.
+- For developer pipelines focused on inference efficiency, interactive IDE uses, and a risk-tolerant early adopter profile, GPT-5.3 Codex offers new capabilities, but all current numbers should be considered provisional and subject to change post-independent review.
+- In regulated domains (legal, safety, multilingual), neither model is reliable for mission-critical work until new third-party validations are published. No apples-to-apples numbers for legal/finance domains exist.
+- Product readiness and API rollout may determine choice more than underlying benchmarks: Anthropic offers full access now; OpenAI Codex API is promised but not yet available for general use.
 
-There is **no independent validation** captured in the current evidence set for the only quantitative claim (the 38/40 “cybersecurity investigations” result). Additionally, this report does not include a first-party excerpt of the benchmark text or methodology; therefore the claim should be treated as **low-confidence, vendor-stated** until the underlying evaluation details are reviewed directly and/or reproduced. ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6))
+## Caveats, Unknowns, Non-comparable Metrics
 
-No contradictions are detectable within the captured evidence because the note contains only one extracted atomic quantitative claim and no third-party sources here report competing measurements on the same task. ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6))
+- Most head-to-head axes are apples-to-oranges: different reporting standards, incomplete disclosures, and lack of third-party leaderboard verification weaken the reliability of all headline figures.
+- Claims marked as vendor-reported should be treated as marketing until independently replicated.
+- Benchmarking harnesses (Terminal-Bench 2.0, GDPval-AA) are methodologically strong, but public comparison tables were unavailable at the time of writing.
+- Safety claims are aspirational and non-operationalizable from public artifacts.
+- Claude’s 1M token context is in beta, and performance specifics (retrieval speed, accuracy) lack public, reproducible measurement.
 
-Most importantly for decision integrity, the available benchmark statement is **not an apples-to-apples comparison** between Opus 4.6 and GPT-5.3-Codex; it compares Opus 4.6 to Claude 4.5 family models and cannot be used to infer cross-vendor ranking. ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6))
+## Evidence Quality Classification
 
-## 4) Developer implications ("best fit when…")
-
-**Claude Opus 4.6 is a better fit when…** you need to decide whether to allocate evaluation time toward a model that, per Anthropic, improved on **security-investigation-style tasks** relative to Claude 4.5 family models—and you are prepared to validate that claim with your own test cases and acceptance criteria (**vendor-stated, not independently verified**). ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6))
-
-**GPT-5.3-Codex is a better fit when…** you have organization-specific reasons to standardize on OpenAI’s platform, but you should treat the present comparison as **data-incomplete** until benchmark, safety, and API claims are extracted and cited from the GPT-5.3-Codex launch material and system card. ([OpenAI launch post](https://openai.com/index/introducing-gpt-5-3-codex/))
-
-**In either case, prioritize a short, decision-relevant evaluation**: (1) define a small set of “investigation” tasks representative of your environment, (2) run blinded reviews with consistent rubrics, and (3) record failure modes and operational costs—because the only benchmark-like claim in the captured evidence is vendor-stated and not reproducible as written here. ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6))
-
-## 5) Caveats, unknowns, and non-comparable metrics
-
-- **Methodology not captured in this dataset:** The Opus 4.6 “38 of 40” statement is not accompanied here by a public harness, dataset, grading rubric, or protocol; treat it as **vendor-stated, not independently verified**. ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6))
-- **Non-comparability across vendors (required caveat):** The only quantitative figure compares Opus 4.6 to Claude 4.5 family models; it **cannot** be used to conclude Opus 4.6 is better than GPT-5.3-Codex on security work without a shared benchmark and matched evaluation setup. ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6))
-- **Coverage gaps for GPT-5.3-Codex:** While an OpenAI launch post and system card are in the sources list, this note does not include extracted claims from them; therefore this report cannot responsibly compare context length, tool support, safety mitigations, pricing, or availability for GPT-5.3-Codex. ([OpenAI system card](https://openai.com/index/gpt-5-3-codex-system-card/))
-- **Third-party benchmarks listed but not used (required caveat):** SWE-bench resources are included as references, but this evidence set does not include any model-specific SWE-bench score for either model; do not infer relative coding performance from their mere presence in the sources list. ([SWE-bench verified](https://www.swebench.com/verified.html))
-
-## 6) Evidence quality classification
-
-This section tags the report’s major takeaways by evidence quality.
-
-- **Vendor-stated (not independently verified):** Anthropic’s “38 of 40 cybersecurity investigations” result, including any implied improvement claims, because the underlying methodology and scoring are not captured in this dataset and are not corroborated here by third-party measurement. ([Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6))
-- **Independently supported:** None captured in the current evidence set. ([SWE-bench overview](https://www.swebench.com/SWE-bench/))
-- **Mixed (vendor + independent):** None captured in the current evidence set.
-- **Unknown / not stated in captured evidence:** All GPT-5.3-Codex axes in this report (despite the presence of URLs in the sources list), and most Opus 4.6 axes beyond the cybersecurity investigations claim. ([OpenAI launch post](https://openai.com/index/introducing-gpt-5-3-codex/))
+- **Vendor-only**: Nearly all quantitative scores for GPT-5.3 Codex and several for Claude Opus 4.6. Qualitative feature claims for both.
+- **Independent (Partial)**: Methodology descriptions for Terminal-Bench 2.0, GDPval-AA, and some benchmark pages, but without head-to-head model scores published.
+- **Non-comparable**: Where only one vendor claims a score, or differences in evaluation harness/criteria are flagged in benchmark documentation.
 
 ## Sources
 
-1. [Anthropic launch post](https://www.anthropic.com/news/claude-opus-4-6)
-2. [OpenAI launch post](https://openai.com/index/introducing-gpt-5-3-codex/)
-3. [OpenAI system card](https://openai.com/index/gpt-5-3-codex-system-card/)
-4. [SWE-bench leaderboards](https://www.swebench.com/)
-5. [SWE-bench overview](https://www.swebench.com/SWE-bench/)
-6. [SWE-bench verified](https://www.swebench.com/verified.html)
-7. [Snowflake post](https://www.snowflake.com/en/blog/claude-opus-4-6-snowflake-cortex-ai/)
+1. [Anthropic: Claude Opus 4.6](https://www.anthropic.com/news/claude-opus-4-6)
+2. [OpenAI: GPT-5.3-Codex](https://openai.com/index/introducing-gpt-5-3-codex/)
+3. [tbench.ai: Terminal-Bench 2.0 announcement](https://www.tbench.ai/news/announcement-2-0)
+4. [Artificial Analysis: GDPval-AA](https://artificialanalysis.ai/evaluations/gdpval-aa)

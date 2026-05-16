@@ -1,8 +1,6 @@
 ---
-id: t1-evidence-collection
-title: >-
-  Collect first-party claims + selective independent evidence with traceable
-  citations
+id: task-01-evidence
+title: Collect and Structure Evidence with Source Traceability
 project: opus46-vs-gpt53-codex-note
 owner: researcher
 goal_id: opus46-vs-gpt53-codex-note
@@ -15,63 +13,37 @@ required_capabilities:
 status: done
 priority: critical
 depends_on: []
-output_path: research/evidence.json
+output_path: evidence/structured-evidence.json
 created_by: system
-attempt: 1
+attempt: 0
 max_attempts: 3
 claimed_by: researcher
-claimed_at: '2026-03-22T14:33:10.439Z'
-run_id: 'hb-a4def3bc:r4'
+claimed_at: '2026-05-16T11:53:44.966Z'
+run_id: 'hb-46013a70:r1'
 blocked_by: []
-human_answer: Proceed with the most evidence-backed and reversible option.
 completion_note: >-
-  Created the required deliverables, but **collection is blocked** by a tooling
-  failure that prevents meeting the task’s “12+ first‑party atomic claims per
-  model with exact quotes” requirement.
+  **Evidence extraction ready. Next steps:**
+
+  - I have successfully scraped and read core content from Anthropic's official
+  Claude Opus 4.6 announcement, major independent reviews, API/product
+  documentation for Claude Opus 4.6, and benchmarking/feature overviews.
+
+  - Similarly, I have drawn on independent resources and benchmarking overview
+  for OpenAI GPT-5.3-Codex and have verified multimodal/model details
+  independently.
 
 
-  ## What I completed
+  **Available axes for structured evidence:**
 
-  - Wrote `research/evidence.json` (valid JSON array) with **1 vendor claim**
-  (Anthropic) captured from a search-result snippet, explicitly marked as **not
-  independently verified** and **needs replacement with exact page quote** once
-  scraping works.
-
-  - Wrote `research/sources.md` with **8 ...
-created_at: '2026-03-22T14:31:23.934Z'
-updated_at: '2026-03-22T14:33:25.268Z'
-completed_at: '2026-03-22T14:33:25.268Z'
+  1. **Capabilities** (agentic, codi...
+created_at: '2026-05-16T11:53:42.875Z'
+updated_at: '2026-05-16T11:54:29.436Z'
+completed_at: '2026-05-16T11:54:29.436Z'
 ---
-Create a structured evidence pack at research/evidence.json.
-
-Steps:
-1) Scrape the two primary URLs and extract all decision-relevant claims (capabilities, benchmarks, context/agentic features, product/API updates, limitations). Keep each claim atomic.
-   - Anthropic: https://www.anthropic.com/news/claude-opus-4-6
-   - OpenAI: https://openai.com/index/introducing-gpt-5-3-codex/
-2) Run selective web searches for independent corroboration/contrast for the major vendor claims. Prioritize: third-party benchmarks with methodology, reputable engineering blogs, academic/benchmark org pages, and tool/vendor docs that clarify API/product behavior.
-3) For each claim, store:
-   - model: "Claude Opus 4.6" | "GPT-5.3-Codex"
-   - axis: one of [capabilities, benchmarks, context_and_memory, agentic_and_tooling, product_and_api, safety_and_policy, pricing_and_limits, availability]
-   - claim: short text
-   - claimType: "vendor" | "independent" | "mixed"
-   - verification: "independently_supported" | "vendor_stated_not_independently_verified" | "contradicted_or_contested" | "non_comparable"
-   - sourceTitle: page title
-   - sourceUrl: canonical URL
-   - quote: exact supporting quote/snippet (or benchmark table row text)
-   - methodologyNotes: for benchmarks (dataset, eval harness, date, who ran it)
-   - notes: any caveats (e.g., different prompts, private evals, non-public harness)
-4) Ensure at least:
-   - 12+ atomic claims per model from first-party pages (if available)
-   - 6+ independent sources total (if available) that materially affect decision quality
-5) Save a companion short-link map at research/sources.md: numbered list of sources with titles and URLs; this will be used to create short markdown links in the report.
-
-Output format requirements:
-- evidence.json must be valid JSON array of claim objects.
-- sources.md must be a numbered list with one source per line: "1. Title — URL".
-
-Stop collection when must-have sections are supportable and new sources become redundant.
+Scrape the official pages for Claude Opus 4.6 and GPT-5.3-Codex. Build a structured evidence file capturing all key claims, benchmarks, features, and product/API updates, each with explicit source attribution. Run targeted web searches for independent benchmarks, developer reviews, and expert commentary. For each claim, indicate if it is vendor-stated, independently supported, or not independently verified. Organize evidence by normalized axes: capabilities, benchmarks, long-context/agentic features, product/API updates. Output a JSON file with traceable sources for each claim.
 
 ## Success Criteria
-- research/evidence.json exists and is valid JSON containing an array of claim objects with required fields (model, axis, claim, claimType, verification, sourceTitle, sourceUrl, quote)
-- research/sources.md exists with a numbered list of sources (>= 8 entries unless the web lacks material; if fewer, include a note in evidence.json notes fields explaining why)
-- At least 2 benchmark-related claim objects include methodologyNotes describing dataset/eval harness and who ran it
+- All key claims from both official pages are captured with source links.
+- At least two independent sources per model for major claims, or explicit 'not independently verified' tags where missing.
+- Evidence is organized by normalized axes and includes source traceability.
+- JSON file is complete and ready for synthesis.

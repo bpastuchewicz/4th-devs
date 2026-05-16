@@ -5,9 +5,9 @@ status: done
 deliverable_path: report/final-report.md
 goal_id: opus46-vs-gpt53-codex-note
 plan_version: 1
-created_at: '2026-03-22T14:31:23.932Z'
-completed_at: '2026-05-16T10:31:35.131Z'
+created_at: '2026-05-16T11:53:42.870Z'
+completed_at: '2026-05-16T11:56:35.786Z'
 ---
-Decision-grade comparison note: Claude Opus 4.6 vs GPT-5.3-Codex
+Decision-Grade Comparison: Claude Opus 4.6 vs GPT-5.3-Codex
 
-Produce a cited, decision-grade comparison note anchored in official vendor pages and selectively strengthened with independent evidence; deliver markdown and rendered HTML.
+A structured, evidence-based comparison of Claude Opus 4.6 and GPT-5.3-Codex, synthesizing official claims and independent validation, with actionable guidance for developers.
