@@ -11,6 +11,7 @@ import { exists } from './src/helpers/fs.js'
 import { createMcpManager } from './src/mcp/client.js'
 import { resolveWorkflow } from './src/workflows/registry.js'
 import type { WorkflowDefinition } from './src/workflows/types.js'
+import { AI_API_KEY, AI_PROVIDER } from '../config.js'
 
 const WORKSPACE = PATHS.WORKSPACE_DIR
 const EVENTS_DIR = PATHS.EVENTS_DIR
@@ -122,8 +123,10 @@ const requestShutdown = (signal: 'SIGINT' | 'SIGTERM'): void => {
 }
 
 const main = async (): Promise<void> => {
-  if (!process.env.OPENAI_API_KEY && !process.env.OPENROUTER_API_KEY) {
-    throw new Error('API key is missing. Set OPENAI_API_KEY or OPENROUTER_API_KEY in .env')
+  if (!AI_API_KEY) {
+    throw new Error(
+      `API key is missing for provider ${AI_PROVIDER}. Set GITHUB_TOKEN (Copilot) or OPENAI_API_KEY/OPENROUTER_API_KEY in .env`,
+    )
   }
 
   const fallbackWorkflow = resolveWorkflow(workflowId)

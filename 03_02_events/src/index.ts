@@ -6,6 +6,7 @@ import { runHeartbeatLoop } from './features/heartbeat/index.js'
 import { exists } from './helpers/fs.js'
 import { createMcpManager } from './mcp/client.js'
 import { resolveWorkflow } from './workflows/registry.js'
+import { AI_API_KEY, AI_PROVIDER } from '../../config.js'
 
 const rounds = parsePositiveInt(readFlag('--rounds'), 8)
 const delayMs = parsePositiveInt(
@@ -31,9 +32,9 @@ const main = async (): Promise<void> => {
   process.once('SIGTERM', onSigterm)
 
   try {
-    if (!process.env.OPENAI_API_KEY && !process.env.OPENROUTER_API_KEY) {
+    if (!AI_API_KEY) {
       throw new Error(
-        'API key is missing. Set OPENAI_API_KEY or OPENROUTER_API_KEY in your environment.',
+        `API key is missing for provider ${AI_PROVIDER}. Set GITHUB_TOKEN (Copilot) or OPENAI_API_KEY/OPENROUTER_API_KEY in your environment.`,
       )
     }
 

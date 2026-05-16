@@ -21,7 +21,10 @@ bun run start   # bare index.ts (no reset, no summary)
 ## Required setup
 
 1. Copy `env.example` to `.env` in the repo root.
-2. Set one API key: `OPENAI_API_KEY` or `OPENROUTER_API_KEY`.
+2. Set one provider credential:
+	- `GITHUB_TOKEN` (Copilot), or
+	- `OPENAI_API_KEY`, or
+	- `OPENROUTER_API_KEY`.
 3. Set `GEMINI_API_KEY` — used by the `create_image` tool.
 4. Optional: `OPENAI_MODEL` (default `gpt-5.2`), `WEB_SEARCH_MODEL` (default `gpt-5.2`), `HEARTBEAT_DELAY_MS` (default `750`).
 

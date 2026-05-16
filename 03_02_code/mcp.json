@@ -5,7 +5,8 @@
       "args": ["run", "../mcp/files-mcp/src/index.ts"],
       "env": {
         "LOG_LEVEL": "warning",
-        "FS_ROOT": "workspace"
+        "FS_ROOT": "workspace",
+        "FS_ROOTS": "workspace"
       }
     }
   }
