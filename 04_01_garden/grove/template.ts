@@ -110,6 +110,29 @@ function injectListing(content: string, listing: ListingContext, slug: string): 
   return `${content}\n<section class="listing">\n${items}\n</section>\n${pagination}`;
 }
 
+function injectShelfVueApp(
+  content: string,
+  prefix: string,
+  listing: ListingContext | undefined,
+): string {
+  const listingInfo = listing
+    ? `data-total="${listing.children.length}"`
+    : 'data-total="0"';
+
+  return [
+    '<section class="shelf-layout">',
+    '<aside class="shelf-layout-panel">',
+    '<div id="shelf-vue-app" class="shelf-app-shell" data-api-base="/api"></div>',
+    "</aside>",
+    '<div class="shelf-layout-content">',
+    content,
+    `<section id="shelf-author-results" class="shelf-author-results" ${listingInfo}></section>`,
+    "</div>",
+    "</section>",
+    `<script type="module" src="${prefix}frontend/shelf-app.js"></script>`,
+  ].join("\n");
+}
+
 function renderNav(menu: Menu, currentSlug: string): string {
   const prefix = relativePrefix(currentSlug);
   return menu.items
@@ -320,8 +343,15 @@ export function render(page: Page, menu: Menu, listing?: ListingContext): string
       ? injectComparisonUi(page.content, page.comparison)
       : page.content;
 
-  if (listing && listing.children.length > 0) {
-    content = injectListing(content, { ...listing, groupBy: page.listingGroupBy }, page.slug);
+  const shelfListing = listing
+    ? { ...listing, groupBy: page.listingGroupBy }
+    : undefined;
+  const isShelfPage = page.slug === "shelf" || page.slug.startsWith("shelf/page/");
+
+  if (isShelfPage) {
+    content = injectShelfVueApp(content, prefix, shelfListing);
+  } else if (shelfListing && shelfListing.children.length > 0) {
+    content = injectListing(content, shelfListing, page.slug);
   }
 
   return layout

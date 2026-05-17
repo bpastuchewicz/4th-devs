@@ -2,6 +2,7 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Tool, ToolContext } from "../types";
 import { VAULT_DIR } from "../sandbox/client";
+import { rebuildGrove } from "./rebuild-grove";
 
 type Mode = "author" | "theme";
 
@@ -9,6 +10,49 @@ interface CandidateBook {
   title: string;
   author: string;
   year?: number;
+  workKey?: string;
+  sourceDescription?: string;
+  subjects?: string[];
+}
+
+function capitalizeFirst(text: string): string {
+  if (!text) return text;
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function toAsciiSpaces(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function firstSentence(text: string): string {
+  const cleaned = toAsciiSpaces(text);
+  const match = cleaned.match(/^(.{40,220}?[.!?])\s/);
+  return match ? match[1] : cleaned.slice(0, 220);
+}
+
+function parseOpenLibraryDescription(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    const trimmed = toAsciiSpaces(value);
+    return trimmed || undefined;
+  }
+
+  if (value && typeof value === "object") {
+    const nested = (value as { value?: unknown }).value;
+    if (typeof nested === "string") {
+      const trimmed = toAsciiSpaces(nested);
+      return trimmed || undefined;
+    }
+  }
+
+  return undefined;
+}
+
+function parseStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => toAsciiSpaces(item))
+    .filter(Boolean);
 }
 
 function slugify(text: string): string {
@@ -81,33 +125,76 @@ function parseFrontmatter(raw: string): { title?: string; author?: string } {
   return result;
 }
 
-function buildDescription(mode: Mode, theme: string | undefined, author: string, year?: number): string {
+function buildDescription(book: CandidateBook, mode: Mode, theme: string | undefined): string {
+  if (book.sourceDescription) {
+    return firstSentence(book.sourceDescription);
+  }
+
   if (mode === "theme") {
     return `Książka związana z tematem: ${theme ?? "wybrany temat"}.`;
   }
 
-  if (year) {
-    return `Książka ${author} (wyd. ${year}).`;
+  if (book.year) {
+    return `Powieść ${book.author} (wyd. ${book.year}).`;
   }
-  return `Książka ${author}.`;
+  return `Powieść ${book.author}.`;
 }
 
-function buildBody(mode: Mode, title: string, author: string, year: number | undefined, theme: string | undefined): string {
-  if (mode === "theme") {
-    const yearText = year ? ` Opublikowana około ${year} roku.` : "";
-    return `${title} autorstwa ${author} została dobrana do półki w ramach wyszukiwania tematycznego (${theme ?? "temat"}).${yearText} To pozycja, która może poszerzyć kontekst i perspektywę wokół wybranego zagadnienia.`;
+function buildBody(book: CandidateBook, mode: Mode, theme: string | undefined): string {
+  const yearText = book.year ? ` Pierwsze wydanie ukazało się około ${book.year} roku.` : "";
+  const subjects = (book.subjects ?? []).slice(0, 4);
+  const subjectsText =
+    subjects.length > 0
+      ? ` Wśród motywów pojawiają się: ${subjects.map((s) => s.toLowerCase()).join(", ")}.`
+      : "";
+
+  if (book.sourceDescription) {
+    const sentence = firstSentence(book.sourceDescription);
+    if (mode === "theme") {
+      return `${book.title} autorstwa ${book.author} została dobrana do tematu "${theme ?? "temat"}". ${sentence}${yearText}${subjectsText}`;
+    }
+
+    return `${book.title} to powieść ${book.author}. ${sentence}${yearText}${subjectsText}`;
   }
 
-  const yearText = year ? ` Pierwsze wydanie pojawiło się około ${year} roku.` : "";
-  return `${title} autorstwa ${author} została automatycznie dodana jako brakująca pozycja tego autora.${yearText} Warto uzupełnić tę notatkę o własne wnioski po lekturze.`;
+  if (mode === "theme") {
+    return `${book.title} autorstwa ${book.author} została dobrana do półki w ramach wyszukiwania tematycznego (${theme ?? "temat"}).${yearText}${subjectsText}`;
+  }
+
+  return `${book.title} to jedna z książek ${book.author}, którą warto mieć w shelf przy przeglądzie twórczości autora.${yearText}${subjectsText}`;
 }
 
-function buildReview(mode: Mode, title: string, author: string, theme: string | undefined): string {
+function buildReview(book: CandidateBook, mode: Mode, theme: string | undefined): string {
+  const subjects = (book.subjects ?? []).slice(0, 5);
+  const perspective =
+    subjects.length > 0
+      ? ` Na pierwszy plan wysuwają się tu wątki: ${subjects.map((s) => s.toLowerCase()).join(", ")}.`
+      : "";
+
   if (mode === "theme") {
-    return `${title} dobrze wpisuje się w temat "${theme ?? "wybrany temat"}", ponieważ łączy wyraźny rys literacki z motywami istotnymi dla tego obszaru. Jako kolejny krok warto porównać ją z 1-2 innymi tytułami z listy, żeby uchwycić różnice perspektyw i stylu narracji.`;
+    return `${book.title} dobrze wpisuje się w temat "${theme ?? "wybrany temat"}", ponieważ łączy wyraźny rys literacki z motywami istotnymi dla tego obszaru.${perspective} Warto zestawić ją z innymi tytułami z listy, żeby zobaczyć różnice perspektywy i języka.`;
   }
 
-  return `${title} to ważne uzupełnienie bibliografii ${author}. Nawet jeśli nie należy do najbardziej kanonicznych tytułów, pomaga lepiej zobaczyć rozpiętość tematów, języka i etapu twórczości autora.`;
+  return `${book.title} to wartościowe uzupełnienie bibliografii ${book.author}.${perspective} Dobrze pokazuje etap twórczości autora i może być punktem wyjścia do dalszej, własnej interpretacji.`;
+}
+
+async function enrichWorkDetails(book: CandidateBook, context: ToolContext): Promise<CandidateBook> {
+  if (!book.workKey) return book;
+
+  try {
+    const workPath = book.workKey.startsWith("/works/") ? book.workKey : `/works/${book.workKey}`;
+    const data = await fetchJsonInSandbox(`https://openlibrary.org${workPath}.json`, context);
+    const description = parseOpenLibraryDescription(data?.description) ?? book.sourceDescription;
+    const subjects = parseStringArray(data?.subjects);
+
+    return {
+      ...book,
+      sourceDescription: description,
+      subjects: subjects.length > 0 ? subjects : book.subjects,
+    };
+  } catch {
+    return book;
+  }
 }
 
 function shQuote(value: string): string {
@@ -171,7 +258,11 @@ async function getAuthorBooks(author: string, context: ToolContext): Promise<Can
     const yearMatch = typeof yearRaw === "string" ? yearRaw.match(/(\d{4})/) : null;
     const year = yearMatch ? Number(yearMatch[1]) : undefined;
 
-    books.push({ title, author, year });
+    const workKey = typeof entry?.key === "string" ? entry.key : undefined;
+    const sourceDescription = parseOpenLibraryDescription(entry?.description);
+    const subjects = parseStringArray(entry?.subject);
+
+    books.push({ title, author, year, workKey, sourceDescription, subjects });
   }
 
   return books;
@@ -200,8 +291,10 @@ async function getThemeBooks(theme: string, context: ToolContext): Promise<Candi
     const year = typeof doc?.first_publish_year === "number"
       ? doc.first_publish_year
       : undefined;
+    const workKey = Array.isArray(doc?.key) ? undefined : typeof doc?.key === "string" ? doc.key : undefined;
+    const subjects = parseStringArray(doc?.subject);
 
-    books.push({ title, author, year });
+    books.push({ title, author, year, workKey, subjects });
   }
 
   return books;
@@ -313,12 +406,13 @@ export const addMissingBooksTool: Tool = {
       const selected = missing.slice(0, maxItems);
       const created: string[] = [];
 
-      for (const book of selected) {
+      for (const selectedBook of selected) {
+        const book = await enrichWorkDetails(selectedBook, context);
         const filename = makeFilename(book.title, book.author);
         const filePath = join(shelfDir, filename);
-        const description = buildDescription(mode, theme || undefined, book.author, book.year);
-        const body = buildBody(mode, book.title, book.author, book.year, theme || undefined);
-        const review = withReview ? buildReview(mode, book.title, book.author, theme || undefined) : "";
+        const description = capitalizeFirst(buildDescription(book, mode, theme || undefined));
+        const body = capitalizeFirst(buildBody(book, mode, theme || undefined));
+        const review = withReview ? capitalizeFirst(buildReview(book, mode, theme || undefined)) : "";
 
         const content =
           `---\n` +
@@ -339,9 +433,14 @@ export const addMissingBooksTool: Tool = {
         return { ok: true, output: "No missing books found for the given query." };
       }
 
+      const build = await rebuildGrove();
+      const buildLine = build.ok
+        ? `Build: ${build.output.split("\n").pop() ?? "ok"}`
+        : `Build warning: ${build.output}`;
+
       return {
         ok: true,
-        output: `Created ${created.length} files: ${created.join(", ")}`,
+        output: `Created ${created.length} files: ${created.join(", ")}. ${buildLine}`,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

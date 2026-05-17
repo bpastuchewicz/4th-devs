@@ -10,6 +10,7 @@ const ROOT = import.meta.dir + "/..";
 const VAULT = join(ROOT, "vault");
 const DIST = join(ROOT, "dist");
 const STYLES_SRC = join(import.meta.dir, "styles");
+const FRONTEND_SRC = join(import.meta.dir, "frontend");
 const MENU_PATH = join(ROOT, "menu.json");
 
 async function collectMarkdown(dir: string): Promise<string[]> {
@@ -57,6 +58,7 @@ async function build() {
   await rm(DIST, { recursive: true, force: true });
   await mkdir(DIST, { recursive: true });
   await cp(STYLES_SRC, join(DIST, "styles"), { recursive: true });
+  await cp(FRONTEND_SRC, join(DIST, "frontend"), { recursive: true });
 
   const files = await collectMarkdown(VAULT);
 

@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { Tool } from "../types";
 import { VAULT_DIR } from "../sandbox/client";
+import { rebuildGrove } from "./rebuild-grove";
 
 interface ShelfItemInput {
   title?: unknown;
@@ -129,12 +130,17 @@ export const addToShelfTool: Tool = {
         created.push(`vault/shelf/${filename}`);
       }
 
+      const build = await rebuildGrove();
+      const buildLine = build.ok
+        ? `Build: ${build.output.split("\n").pop() ?? "ok"}`
+        : `Build warning: ${build.output}`;
+
       return {
         ok: true,
         output:
           created.length === 1
-            ? `Created ${created[0]}`
-            : `Created ${created.length} files: ${created.join(", ")}`,
+            ? `Created ${created[0]}. ${buildLine}`
+            : `Created ${created.length} files: ${created.join(", ")}. ${buildLine}`,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

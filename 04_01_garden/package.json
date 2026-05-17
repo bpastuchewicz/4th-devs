@@ -5,7 +5,8 @@
     "start": "bun src/index.ts",
     "build": "bun grove/build.ts",
     "dev": "bun --watch grove/build.ts",
-    "preview": "bunx serve dist"
+    "web": "bun src/web/server.ts",
+    "preview": "bun src/web/server.ts"
   },
   "dependencies": {
     "gray-matter": "^4.0.3",

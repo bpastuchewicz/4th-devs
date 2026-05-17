@@ -1,0 +1,22 @@
+nohup: ignoring input
+$ bun src/web/server.ts
+[36m[Copilot] Provider: GitHub Copilot | Model: gpt-4.1[0m
+web: http://localhost:4173
+
+[33m── turn 1 ──[0m
+[36m→ add_missing_books[0m [90mauthor=J.R.R. Tolkien mode=author[0m
+sandbox: creating...
+sandbox: synced 156 vault files
+sandbox: synced local vault changes (+1, -0)
+sandbox: synced local vault changes (+1, -0)
+sandbox: synced local vault changes (+1, -0)
+sandbox: synced local vault changes (+1, -0)
+sandbox: synced local vault changes (+1, -0)
+sandbox: synced local vault changes (+1, -0)
+sandbox: synced local vault changes (+1, -0)
+sandbox: synced local vault changes (+1, -0)
+[32m  ✓ add_missing_books[0m [90mCreated 8 files: vault/shelf/the-return-of-king-tolkien.md, vault/shelf/tolkien-diary-2003-tolkien.md, vault/shelf/smith-of-wootton-major-and-farmer-giles-of-ham-tolkien.md, vault/shelf/mr-bliss-tolki[2m... (450 chars)[0m[0m
+
+[33m── turn 2 ──[0m
+sandbox: synced 155 vault files back
+error: script "web" was terminated by signal SIGTERM (Polite quit request)
