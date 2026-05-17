@@ -108,6 +108,10 @@ function makeFilename(title: string, author: string): string {
   return `${slug}.md`;
 }
 
+function yamlQuoted(value: string): string {
+  return JSON.stringify(value.replace(/\r?\n/g, " ").trim());
+}
+
 function parseFrontmatter(raw: string): { title?: string; author?: string } {
   const match = raw.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return {};
@@ -416,9 +420,9 @@ export const addMissingBooksTool: Tool = {
 
         const content =
           `---\n` +
-          `title: ${book.title}\n` +
-          `author: ${book.author}\n` +
-          `description: ${description}\n` +
+          `title: ${yamlQuoted(book.title)}\n` +
+          `author: ${yamlQuoted(book.author)}\n` +
+          `description: ${yamlQuoted(description)}\n` +
           `date: ${today()}\n` +
           `publish: true\n` +
           `---\n\n` +

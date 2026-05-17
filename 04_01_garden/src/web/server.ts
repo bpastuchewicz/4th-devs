@@ -71,6 +71,10 @@ function toAsciiSpaces(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
+function yamlQuoted(value: string): string {
+  return JSON.stringify(value.replace(/\r?\n/g, " ").trim());
+}
+
 function firstSentence(text: string): string {
   const cleaned = toAsciiSpaces(text);
   const match = cleaned.match(/^(.{40,220}?[.!?])\s/);
@@ -524,9 +528,9 @@ async function updateShelfBookBySlug(
 
   const rewritten =
     `---\n` +
-    `title: ${title}\n` +
-    `author: ${author}\n` +
-    `description: ${nextDescription}\n` +
+    `title: ${yamlQuoted(title)}\n` +
+    `author: ${yamlQuoted(author)}\n` +
+    `description: ${yamlQuoted(nextDescription)}\n` +
     `date: ${date}\n` +
     `updated_at: ${updatedAt}\n` +
     `publish: ${publish}\n` +
@@ -597,9 +601,9 @@ async function writeBookToShelf(book: CandidateBook, mode: Mode, theme?: string)
 
   const content =
     `---\n` +
-    `title: ${book.title}\n` +
-    `author: ${book.author}\n` +
-    `description: ${description}\n` +
+    `title: ${yamlQuoted(book.title)}\n` +
+    `author: ${yamlQuoted(book.author)}\n` +
+    `description: ${yamlQuoted(description)}\n` +
     `date: ${today()}\n` +
     `publish: true\n` +
     `---\n\n` +

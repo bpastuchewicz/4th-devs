@@ -27,6 +27,10 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function yamlQuoted(value: string): string {
+  return JSON.stringify(value.replace(/\r?\n/g, " ").trim());
+}
+
 export const addToShelfTool: Tool = {
   definition: {
     type: "function",
@@ -119,10 +123,10 @@ export const addToShelfTool: Tool = {
 
         const filename = `${slug}.md`;
         const filePath = join(VAULT_DIR, "shelf", filename);
-        const authorLine = author ? `author: ${author}\n` : "";
+        const authorLine = author ? `author: ${yamlQuoted(author)}\n` : "";
 
         const content =
-          `---\ntitle: ${title}\n${authorLine}description: ${description}\ndate: ${today()}\npublish: true\n---\n\n${body}\n` +
+          `---\ntitle: ${yamlQuoted(title)}\n${authorLine}description: ${yamlQuoted(description)}\ndate: ${today()}\npublish: true\n---\n\n${body}\n` +
           (review ? `\n## Recenzja\n\n${review}\n` : "");
 
         await mkdir(dirname(filePath), { recursive: true });
