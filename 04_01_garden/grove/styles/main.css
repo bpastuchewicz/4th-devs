@@ -253,6 +253,14 @@ img {
   color: var(--accent);
 }
 
+.listing-author {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: var(--accent-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
 .listing-desc {
   margin: 0.2rem 0 0;
   font-size: 0.875rem;
@@ -266,6 +274,39 @@ img {
   font-size: 0.75rem;
   font-family: "IBM Plex Mono", monospace;
   color: var(--muted);
+}
+
+.listing-more {
+  display: inline-block;
+  margin-top: 0.55rem;
+  font-size: 0.8rem;
+  color: var(--accent-subtle);
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+
+.listing-more:hover {
+  color: var(--accent);
+}
+
+.listing-group {
+  margin-top: 1.8rem;
+}
+
+.listing-group:first-child {
+  margin-top: 0;
+}
+
+.listing-group-title {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+}
+
+.listing-group-items {
+  border-top: 1px solid var(--border);
 }
 
 /* --- Pagination --- */

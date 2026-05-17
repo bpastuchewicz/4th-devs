@@ -284,6 +284,7 @@ export function parse(filepath: string, raw: string): Page {
   return {
     slug,
     title: data.title ?? slug.split("/").pop() ?? "Untitled",
+    author: asString(metadata.author),
     description: data.description,
     date: data.date instanceof Date
       ? data.date.toISOString().slice(0, 10)
@@ -295,6 +296,7 @@ export function parse(filepath: string, raw: string): Page {
     seo,
     published: publish !== false && !draft,
     listing: asBoolean(metadata.listing),
+    listingGroupBy: asString(metadata.listing_group_by) === "author" ? "author" : undefined,
     listingPageSize: asNumber(metadata.listing_page_size),
     content: marked.parse(source, { async: false }) as string,
     raw: content,

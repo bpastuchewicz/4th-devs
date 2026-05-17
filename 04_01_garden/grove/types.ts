@@ -40,6 +40,7 @@ export interface PageSeo {
 export interface Page {
   slug: string;
   title: string;
+  author?: string;
   content: string;
   description?: string;
   date?: string;
@@ -48,6 +49,7 @@ export interface Page {
   seo?: PageSeo;
   published: boolean;
   listing?: boolean;
+  listingGroupBy?: "author";
   listingPageSize?: number;
   raw: string;
 }

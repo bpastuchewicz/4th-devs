@@ -2,6 +2,7 @@ import type { Tool, FunctionTool, AnyTool, WebSearchTool } from "../types";
 import { terminalTool } from "./terminal";
 import { codeModeTool } from "./code-mode";
 import { gitPushTool } from "./git-push";
+import { addToShelfTool } from "./add-to-shelf";
 
 const registry = new Map<string, Tool>();
 
@@ -12,6 +13,7 @@ function register(tool: Tool) {
 register(terminalTool);
 register(codeModeTool);
 register(gitPushTool);
+register(addToShelfTool);
 
 const BUILTIN_TOOLS: Record<string, AnyTool> = {
   web_search: {

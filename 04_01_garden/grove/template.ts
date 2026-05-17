@@ -6,6 +6,7 @@ export interface ListingContext {
   currentPage: number;
   totalPages: number;
   parentSlug: string;
+  groupBy?: "author";
 }
 
 const TEMPLATES_DIR = join(import.meta.dir, "templates");
@@ -21,23 +22,51 @@ function slugToRelativeHref(fromSlug: string, toSlug: string): string {
   return posix.relative(fromDir, `${toSlug}.html`) || `${toSlug}.html`;
 }
 
-function renderListingItems(children: Page[], fromSlug: string): string {
+function renderListingItem(child: Page, fromSlug: string, showAuthor: boolean): string {
+  const href = slugToRelativeHref(fromSlug, child.slug);
+  const author = showAuthor && child.author ? `<p class="listing-author">${escapeHtml(child.author)}</p>` : "";
+  const desc = child.description
+    ? `<p class="listing-desc">${escapeHtml(child.description)}</p>`
+    : "";
+  const date = child.date
+    ? `<time class="listing-date">${escapeHtml(child.date)}</time>`
+    : "";
+  return [
+    '<article class="listing-item">',
+    `<a class="listing-link" href="${href}">${escapeHtml(child.title)}</a>`,
+    author,
+    desc,
+    date,
+    `<a class="listing-more" href="${href}">więcej →</a>`,
+    "</article>",
+  ].join("");
+}
+
+function renderListingItems(children: Page[], fromSlug: string, showAuthor: boolean): string {
   return children
-    .map((child) => {
-      const href = slugToRelativeHref(fromSlug, child.slug);
-      const desc = child.description
-        ? `<p class="listing-desc">${escapeHtml(child.description)}</p>`
-        : "";
-      const date = child.date
-        ? `<time class="listing-date">${escapeHtml(child.date)}</time>`
-        : "";
+    .map((child) => renderListingItem(child, fromSlug, showAuthor))
+    .join("\n");
+}
+
+function renderGroupedListingItems(children: Page[], fromSlug: string): string {
+  const grouped = new Map<string, Page[]>();
+  for (const child of children) {
+    const author = child.author?.trim() || "Autor nieznany";
+    const list = grouped.get(author) ?? [];
+    list.push(child);
+    grouped.set(author, list);
+  }
+
+  return [...grouped.entries()]
+    .sort(([authorA], [authorB]) => authorA.localeCompare(authorB, "pl"))
+    .map(([author, items]) => {
+      const sortedItems = [...items].sort((a, b) => a.title.localeCompare(b.title, "pl"));
       return [
-        '<article class="listing-item">',
-        `<a class="listing-link" href="${href}">${escapeHtml(child.title)}</a>`,
-        desc,
-        date,
-        "</article>",
-      ].join("");
+        '<section class="listing-group">',
+        `<h3 class="listing-group-title">${escapeHtml(author)}</h3>`,
+        `<div class="listing-group-items">${renderListingItems(sortedItems, fromSlug, false)}</div>`,
+        "</section>",
+      ].join("\n");
     })
     .join("\n");
 }
@@ -71,7 +100,9 @@ function renderPagination(
 }
 
 function injectListing(content: string, listing: ListingContext, slug: string): string {
-  const items = renderListingItems(listing.children, slug);
+  const items = listing.groupBy === "author"
+    ? renderGroupedListingItems(listing.children, slug)
+    : renderListingItems(listing.children, slug, true);
   const pagination =
     listing.totalPages > 1
       ? renderPagination(listing.currentPage, listing.totalPages, slug, listing.parentSlug)
@@ -290,7 +321,7 @@ export function render(page: Page, menu: Menu, listing?: ListingContext): string
       : page.content;
 
   if (listing && listing.children.length > 0) {
-    content = injectListing(content, listing, page.slug);
+    content = injectListing(content, { ...listing, groupBy: page.listingGroupBy }, page.slug);
   }
 
   return layout
