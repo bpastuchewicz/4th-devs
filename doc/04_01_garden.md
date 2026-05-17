@@ -37,21 +37,21 @@ Interaktywny agent REPL, który pracuje na sandboxowanym vault i wykonuje narzę
 
 ```mermaid
 flowchart TD
-  IDX[src/index.ts REPL] --> ASK[readline question]
+  IDX["src/index.ts REPL"] --> ASK["readline question"]
   ASK --> EXIT{isExitCommand?}
-  EXIT -->|tak| END[graceful shutdown + sandbox.destroy]
-  EXIT -->|nie| SYNC1[sandbox.syncLocalVaultNow]
-  SYNC1 --> RUN[src/agent/loop.ts run]
+  EXIT -->|tak| END["graceful shutdown + sandbox.destroy"]
+  EXIT -->|nie| SYNC1["sandbox.syncLocalVaultNow"]
+  SYNC1 --> RUN["src/agent/loop.ts run"]
   RUN --> LOOP{turn < MAX_TURNS}
-  LOOP -->|tak| COMP[completion()]
+  LOOP -->|tak| COMP["completion()"]
   COMP --> FC{function_call items?}
-  FC -->|tak| EXEC[executeToolCall from tool registry]
-  EXEC --> APPEND[append tool output/error]
+  FC -->|tak| EXEC["executeToolCall from tool registry"]
+  EXEC --> APPEND["append tool output/error"]
   APPEND --> LOOP
-  FC -->|nie| OUT[assistant response]
-  OUT --> SYNC2[sandbox.syncVaultBackNow]
+  FC -->|nie| OUT["assistant response"]
+  OUT --> SYNC2["sandbox.syncVaultBackNow"]
   SYNC2 --> ASK
-  LOOP -->|nie| MAX[Max turns reached]
+  LOOP -->|nie| MAX["Max turns reached"]
 ```
 
 ## Źródła kodu

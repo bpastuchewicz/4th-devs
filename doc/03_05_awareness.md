@@ -41,19 +41,19 @@ Agent świadomości kontekstowej z pamięcią trwałą, heurystykami odświeżan
 
 ```mermaid
 flowchart TD
-  CLI[src/index.ts runCli] --> TURN[src/core/agent.ts runAwarenessTurn]
-  TURN --> META[inject metadata now_iso/weekday/timezone]
-  META --> LOOP[src/core/responses-loop.ts runResponsesLoop]
+  CLI["src/index.ts runCli"] --> TURN["src/core/agent.ts runAwarenessTurn"]
+  TURN --> META["inject metadata now_iso/weekday/timezone"]
+  META --> LOOP["src/core/responses-loop.ts runResponsesLoop"]
   LOOP --> R{turn < maxTurns}
-  R -->|tak| RESP[openai.responses.create parallel_tool_calls=true]
+  R -->|tak| RESP["openai.responses.create parallel_tool_calls=true"]
   RESP --> FC{function calls?}
-  FC -->|tak| EXEC[executeTool(call)]
-  EXEC --> STATE[src/core/awareness-state.ts load/save state]
-  STATE --> TRACE[append jsonl trace]
+  FC -->|tak| EXEC["executeTool(call)"]
+  EXEC --> STATE["src/core/awareness-state.ts load/save state"]
+  STATE --> TRACE["append jsonl trace"]
   TRACE --> R
-  FC -->|nie| FINAL[final answer]
+  FC -->|nie| FINAL["final answer"]
   EXEC --> SCOUT{tool == look_around?}
-  SCOUT -->|tak| MCP[MCP read profile/environment/memory]
+  SCOUT -->|tak| MCP["MCP read profile/environment/memory"]
   MCP --> STATE
 ```
 
