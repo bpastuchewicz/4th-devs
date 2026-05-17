@@ -3,7 +3,7 @@ import { terminalTool } from "./terminal";
 import { codeModeTool } from "./code-mode";
 import { gitPushTool } from "./git-push";
 import { addToShelfTool } from "./add-to-shelf";
-import { addMissingBooksTool } from "./add-missing-books";
+import { addMissingBooksTool } from "./addMissingBooks";
 
 const registry = new Map<string, Tool>();
 

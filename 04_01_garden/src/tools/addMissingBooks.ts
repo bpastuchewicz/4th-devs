@@ -31,6 +31,25 @@ function normalizeText(text: string): string {
     .trim();
 }
 
+function isLikelyBookTitle(title: string): boolean {
+  const normalized = normalizeText(title);
+  const blocked = [
+    "audiobook",
+    "audiobooki",
+    "pakiet",
+    "box",
+    "collector",
+    "mp3",
+    "cd",
+    "ebook",
+    "e book",
+    "polish edition",
+    "special edition",
+  ];
+
+  return !blocked.some((token) => normalized.includes(token));
+}
+
 function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -131,7 +150,8 @@ async function getAuthorBooks(author: string, context: ToolContext): Promise<Can
   const key = await findAuthorKey(author, context);
   if (!key) return [];
 
-  const url = `https://openlibrary.org${key}/works.json?limit=100`;
+  const authorPath = key.startsWith("/authors/") ? key : `/authors/${key}`;
+  const url = `https://openlibrary.org${authorPath}/works.json?limit=100`;
   const data = await fetchJsonInSandbox(url, context);
   const entries: any[] = Array.isArray(data.entries) ? data.entries : [];
 
@@ -141,6 +161,7 @@ async function getAuthorBooks(author: string, context: ToolContext): Promise<Can
   for (const entry of entries) {
     const title = typeof entry?.title === "string" ? entry.title.trim() : "";
     if (!title) continue;
+    if (!isLikelyBookTitle(title)) continue;
 
     const keyNorm = normalizeText(title);
     if (!keyNorm || seen.has(keyNorm)) continue;
@@ -171,6 +192,7 @@ async function getThemeBooks(theme: string, context: ToolContext): Promise<Candi
       : "Autor nieznany";
 
     if (!title) continue;
+    if (!isLikelyBookTitle(title)) continue;
     const keyNorm = `${normalizeText(title)}|${normalizeText(author)}`;
     if (!keyNorm || seen.has(keyNorm)) continue;
     seen.add(keyNorm);
