@@ -72,7 +72,8 @@ function toAsciiSpaces(text: string): string {
 }
 
 function yamlQuoted(value: string): string {
-  return JSON.stringify(value.replace(/\r?\n/g, " ").trim());
+  const cleaned = value.replace(/^"+|"+$/g, "").replace(/\r?\n/g, " ").trim();
+  return JSON.stringify(cleaned);
 }
 
 function firstSentence(text: string): string {
@@ -760,6 +761,26 @@ const server = Bun.serve({
       }
     }
 
+    if (url.pathname === "/api/shelf/book" && request.method === "DELETE") {
+      try {
+        const body = (await request.json()) as Record<string, unknown>;
+        const slug = typeof body.slug === "string" ? body.slug.trim() : "";
+        if (!slug) {
+          return json({ error: "slug is required" }, 400);
+        }
+        const safeSlug = slug.replace(/[^a-z0-9\-_]/gi, "");
+        if (!safeSlug) {
+          return json({ error: "Invalid slug" }, 400);
+        }
+        const filePath = join(SHELF_DIR, `${safeSlug}.md`);
+        await rm(filePath, { force: true });
+        await rebuildGrove();
+        return json({ deleted: `${safeSlug}.md` });
+      } catch (error) {
+        return json({ error: error instanceof Error ? error.message : String(error) }, 500);
+      }
+    }
+
     if (url.pathname === "/api/authors/remove" && request.method === "POST") {
       try {
         const body = (await request.json()) as Record<string, unknown>;
@@ -849,8 +870,20 @@ const server = Bun.serve({
         }
 
         const generated = await generateShelfContentViaChat(slug);
+
+        // Auto-save generated content to the markdown file
+        await updateShelfBookBySlug(slug, {
+          description: generated.description,
+          body: generated.body,
+          review: generated.review,
+          source: "api/shelf/generate",
+          note: "Automatyczny wpis po wygenerowaniu przez AI",
+        });
+        await rebuildGrove();
+
         return json({
           generated,
+          saved: true,
         });
       } catch (error) {
         return json({ error: error instanceof Error ? error.message : String(error) }, 500);

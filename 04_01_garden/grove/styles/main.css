@@ -578,6 +578,37 @@ td {
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
 }
 
+.shelf-book-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.1rem;
+}
+
+.shelf-book-card-header > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.shelf-book-delete {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #bbb;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.15rem 0.4rem;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.shelf-book-delete:hover {
+  color: #e53e3e;
+  border-color: #e53e3e;
+}
+
 .shelf-book-title {
   margin: 0;
   color: #111;
@@ -631,13 +662,13 @@ td {
   background: #fff;
   color: #222;
   padding: 0.45rem 0.55rem;
-  min-height: 66px;
+  min-height: 90px;
   resize: vertical;
   font: inherit;
 }
 
 .shelf-edit-input-lg {
-  min-height: 110px;
+  min-height: 160px;
 }
 
 .shelf-muted {

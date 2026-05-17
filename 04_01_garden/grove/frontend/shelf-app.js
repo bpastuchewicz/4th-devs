@@ -182,16 +182,32 @@ createApp({
         const data = await response.json();
         if (!response.ok) throw new Error(data?.error || "Błąd generowania przez chat");
 
-        const generated = data?.generated ?? {};
-        if (typeof generated.description === "string") row.description = generated.description;
-        if (typeof generated.body === "string") row.body = generated.body;
-        if (typeof generated.review === "string") row.review = generated.review;
-        row.lastSource = "chat-generate";
-        status.value = "Wygenerowano nową treść. Zapisz zmiany MD, aby utrwalić.";
+        // Server auto-saves; reload from server to reflect saved state
+        await fetchShelfBooks(selectedAuthor.value || undefined);
+        status.value = data?.saved
+          ? "Wygenerowano i zapisano nową treść w pliku MD."
+          : "Wygenerowano nową treść. Zapisz zmiany MD, aby utrwalić.";
       } catch (error) {
         status.value = `Błąd: ${error instanceof Error ? error.message : String(error)}`;
       } finally {
         row.saving = false;
+      }
+    };
+
+    const removeBook = async (book) => {
+      if (!confirm(`Usunąć "${book.title}" z półki?`)) return;
+      try {
+        const response = await fetch(api("/shelf/book"), {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug: book.slug }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data?.error || "Błąd usuwania");
+        await fetchShelfBooks(selectedAuthor.value || undefined);
+        status.value = `Usunięto "${book.title}" z półki.`;
+      } catch (error) {
+        status.value = `Błąd: ${error instanceof Error ? error.message : String(error)}`;
       }
     };
 
@@ -300,6 +316,7 @@ createApp({
       showAuthorBooks,
       prepareAuthorCommand,
       removeAuthor,
+      removeBook,
       saveBook,
       generateBookViaChat,
       sendCommand,
@@ -374,8 +391,13 @@ createApp({
           <p class="shelf-muted" v-if="!selectedAuthor && !showRecent">Kliknij autora po lewej, aby wyświetlić jego książki.</p>
           <p class="shelf-muted" v-if="shelfBusy">Odświeżam listę...</p>
           <article class="shelf-book-card" v-for="book in shelfBooks" :key="book.slug">
-            <h4 class="shelf-book-title">{{ book.title }}</h4>
-            <p class="shelf-book-author">{{ book.author }}</p>
+            <div class="shelf-book-card-header">
+              <div>
+                <h4 class="shelf-book-title">{{ book.title }}</h4>
+                <p class="shelf-book-author">{{ book.author }}</p>
+              </div>
+              <button class="shelf-book-delete" @click="removeBook(book)" title="Usuń z półki">×</button>
+            </div>
             <label class="shelf-edit-label">Opis</label>
             <textarea class="shelf-edit-input" v-model="editing[book.slug].description"></textarea>
             <label class="shelf-edit-label">Treść</label>

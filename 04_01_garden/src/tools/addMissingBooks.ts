@@ -109,7 +109,8 @@ function makeFilename(title: string, author: string): string {
 }
 
 function yamlQuoted(value: string): string {
-  return JSON.stringify(value.replace(/\r?\n/g, " ").trim());
+  const cleaned = value.replace(/^"+|"+$/g, "").replace(/\r?\n/g, " ").trim();
+  return JSON.stringify(cleaned);
 }
 
 function parseFrontmatter(raw: string): { title?: string; author?: string } {

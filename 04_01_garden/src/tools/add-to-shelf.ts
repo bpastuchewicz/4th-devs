@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import type { Tool } from "../types";
 import { VAULT_DIR } from "../sandbox/client";
 import { rebuildGrove } from "./rebuild-grove";
+import { enrichBookContent } from "./enrich-book";
 
 interface ShelfItemInput {
   title?: unknown;
@@ -28,7 +29,8 @@ function today(): string {
 }
 
 function yamlQuoted(value: string): string {
-  return JSON.stringify(value.replace(/\r?\n/g, " ").trim());
+  const cleaned = value.replace(/^"+|"+$/g, "").replace(/\r?\n/g, " ").trim();
+  return JSON.stringify(cleaned);
 }
 
 export const addToShelfTool: Tool = {
@@ -111,8 +113,30 @@ export const addToShelfTool: Tool = {
         const filenameArg =
           typeof item.filename === "string" ? item.filename.trim() : "";
 
-        if (!title || !description || !body) {
-          return { ok: false, output: "Error: each shelf item needs title, description and body." };
+        if (!title) {
+          return { ok: false, output: "Error: each shelf item needs title." };
+        }
+
+        // Enrich content with AI – enhances or generates description/body/review
+        let finalDescription = description;
+        let finalBody = body;
+        let finalReview = review;
+        try {
+          const enriched = await enrichBookContent({
+            title,
+            author,
+            currentDescription: description || undefined,
+            currentBody: body || undefined,
+            currentReview: review || undefined,
+          });
+          finalDescription = enriched.description;
+          finalBody = enriched.body;
+          finalReview = enriched.review;
+        } catch {
+          // fall back to agent-provided content
+          if (!finalDescription || !finalBody) {
+            return { ok: false, output: "Error: each shelf item needs title, description and body." };
+          }
         }
 
         const slug = filenameArg
@@ -126,8 +150,8 @@ export const addToShelfTool: Tool = {
         const authorLine = author ? `author: ${yamlQuoted(author)}\n` : "";
 
         const content =
-          `---\ntitle: ${yamlQuoted(title)}\n${authorLine}description: ${yamlQuoted(description)}\ndate: ${today()}\npublish: true\n---\n\n${body}\n` +
-          (review ? `\n## Recenzja\n\n${review}\n` : "");
+          `---\ntitle: ${yamlQuoted(title)}\n${authorLine}description: ${yamlQuoted(finalDescription)}\ndate: ${today()}\npublish: true\n---\n\n${finalBody}\n` +
+          (finalReview ? `\n## Recenzja\n\n${finalReview}\n` : "");
 
         await mkdir(dirname(filePath), { recursive: true });
         await writeFile(filePath, content, "utf-8");
