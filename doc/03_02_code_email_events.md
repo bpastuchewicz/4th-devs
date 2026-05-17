@@ -1,4 +1,12 @@
-# 03_02 - Code, Email, Events
+# 03_02 - Code, Email, Events — Indeks
+
+## Moduły
+
+- [03_02_code](03_02_code.md) — sandbox Deno, narzędzia MCP, execute_code
+- [03_02_email](03_02_email.md) — triage + draft, access-lock KB
+- [03_02_events](03_02_events.md) — heartbeat loop, observer/reflector, HITL
+
+---
 
 ## 03_02_code
 

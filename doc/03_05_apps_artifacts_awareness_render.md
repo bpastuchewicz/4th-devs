@@ -1,4 +1,13 @@
-# 03_05 - Apps, Artifacts, Awareness, Render
+# 03_05 - Apps, Artifacts, Awareness, Render — Indeks
+
+## Moduły
+
+- [03_05_apps](03_05_apps.md) — MCP + UI listy, open_list_manager
+- [03_05_artifacts](03_05_artifacts.md) — generowanie artefaktów, live preview WebSocket
+- [03_05_awareness](03_05_awareness.md) — snapshoty kontekstowe, scout MCP
+- [03_05_render](03_05_render.md) — specyfikacje komponentowe, catalog constraints
+
+---
 
 ## 03_05_apps
 

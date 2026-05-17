@@ -1,4 +1,11 @@
-# 03_01 - Observability i Evals
+# 03_01 - Observability i Evals — Indeks
+
+## Moduły
+
+- [03_01_observability](03_01_observability.md) — tracing Langfuse, agent konwersacyjny Alice
+- [03_01_evals](03_01_evals.md) — eksperymenty ewaluacyjne, Langfuse datasets
+
+---
 
 ## 03_01_observability
 
