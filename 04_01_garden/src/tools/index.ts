@@ -4,6 +4,7 @@ import { codeModeTool } from "./code-mode";
 import { gitPushTool } from "./git-push";
 import { addToShelfTool } from "./add-to-shelf";
 import { addMissingBooksTool } from "./addMissingBooks";
+import { createBookListTool } from "./create-book-list";
 
 const registry = new Map<string, Tool>();
 
@@ -16,6 +17,7 @@ register(codeModeTool);
 register(gitPushTool);
 register(addToShelfTool);
 register(addMissingBooksTool);
+register(createBookListTool);
 
 const BUILTIN_TOOLS: Record<string, AnyTool> = {
   web_search: {

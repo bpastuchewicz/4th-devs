@@ -28,6 +28,10 @@ createApp({
     const showRecent = ref(false);
     const authorBusy = ref(false);
     const authorSuggestions = ref([]);
+    const bookListQuery = ref("");
+    const bookListBusy = ref(false);
+    const bookListAdding = ref(false);
+    const bookListResults = ref([]);
     const shelfBooks = ref([]);
     const shelfBusy = ref(false);
     const editing = ref({});
@@ -100,6 +104,72 @@ createApp({
 
     const prepareAuthorCommand = (authorName) => {
       command.value = `dodaj wszystkie książki autora ${authorName}`;
+    };
+
+    const searchBookList = async () => {
+      const query = bookListQuery.value.trim();
+      if (!query) {
+        status.value = "Wpisz zapytanie do listy książek.";
+        bookListResults.value = [];
+        return;
+      }
+
+      bookListBusy.value = true;
+      status.value = `Szukam książek dla: ${query}...`;
+      try {
+        const response = await fetch(api(`/books/list?q=${encodeURIComponent(query)}&max_items=18`));
+        const data = await response.json();
+        if (!response.ok) throw new Error(data?.error || "Błąd tworzenia listy książek");
+
+        bookListResults.value = Array.isArray(data.items)
+          ? data.items.map((item) => ({ ...item, selected: true }))
+          : [];
+        status.value = `Znaleziono ${bookListResults.value.length} książek.`;
+      } catch (error) {
+        status.value = `Błąd: ${error instanceof Error ? error.message : String(error)}`;
+        bookListResults.value = [];
+      } finally {
+        bookListBusy.value = false;
+      }
+    };
+
+    const addSelectedBooksFromList = async () => {
+      const selectedItems = bookListResults.value
+        .filter((item) => item.selected)
+        .map(({ selected, ...item }) => item);
+
+      if (selectedItems.length === 0) {
+        status.value = "Zaznacz przynajmniej jedną książkę.";
+        return;
+      }
+
+      bookListAdding.value = true;
+      status.value = `Dodaję ${selectedItems.length} książek do shelf...`;
+      try {
+        const response = await fetch(api("/books/add-batch"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: "theme",
+            theme: bookListQuery.value.trim(),
+            items: selectedItems,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data?.error || "Błąd dodawania książek");
+
+        await fetchAuthors();
+        showRecent.value = true;
+        selectedAuthor.value = "";
+        authorQuery.value = "";
+        await fetchShelfBooks("");
+        status.value = data.message || `Dodano ${data.created?.length ?? 0} książek.`;
+        bookListResults.value = bookListResults.value.map((item) => ({ ...item, selected: false }));
+      } catch (error) {
+        status.value = `Błąd: ${error instanceof Error ? error.message : String(error)}`;
+      } finally {
+        bookListAdding.value = false;
+      }
     };
 
     const removeAuthor = async (authorName) => {
@@ -306,6 +376,10 @@ createApp({
       selectedAuthor,
       showRecent,
       authorSuggestions,
+      bookListQuery,
+      bookListBusy,
+      bookListAdding,
+      bookListResults,
       shelfBooks,
       shelfBusy,
       editing,
@@ -315,6 +389,8 @@ createApp({
       fetchShelfBooks,
       showAuthorBooks,
       prepareAuthorCommand,
+      searchBookList,
+      addSelectedBooksFromList,
       removeAuthor,
       removeBook,
       saveBook,
@@ -367,6 +443,39 @@ createApp({
             </button>
             <button class="shelf-author-shortcut" @click="prepareAuthorCommand(author.name)">Do czatu</button>
           </div>
+        </div>
+      </div>
+
+      <div class="shelf-book-query-panel">
+        <label>
+          Zapytanie do listy książek
+          <div class="shelf-book-query-row">
+            <input v-model="bookListQuery" @keyup.enter="searchBookList" placeholder="np. podróż, reportaż, Tolkien" />
+            <button class="shelf-btn" :disabled="bookListBusy" @click="searchBookList">
+              {{ bookListBusy ? 'Szukam...' : 'Utwórz listę' }}
+            </button>
+          </div>
+        </label>
+
+        <div class="shelf-muted" v-if="bookListBusy">Tworzę listę książek...</div>
+        <div class="shelf-book-query-actions" v-if="bookListResults.length > 0">
+          <button class="shelf-btn" :disabled="bookListAdding" @click="addSelectedBooksFromList">
+            {{ bookListAdding ? 'Dodaję...' : 'Dodaj zaznaczone' }}
+          </button>
+          <span class="shelf-muted">Zaznacz pozycje i dodaj je do półki.</span>
+        </div>
+
+        <div class="shelf-book-query-results" v-if="bookListResults.length > 0">
+          <article class="shelf-book-query-item" v-for="book in bookListResults" :key="book.workKey || book.title + book.author">
+            <label class="shelf-book-query-check">
+              <input type="checkbox" v-model="book.selected" />
+              <div class="shelf-book-query-meta">
+                <div class="shelf-book-query-title">{{ book.title }}</div>
+                <div class="shelf-book-query-author">{{ book.author }}<span v-if="book.year"> · {{ book.year }}</span></div>
+                <div class="shelf-book-query-description" v-if="book.sourceDescription">{{ book.sourceDescription }}</div>
+              </div>
+            </label>
+          </article>
         </div>
       </div>
 

@@ -289,6 +289,36 @@ async function getThemeBooks(theme: string, maxItems = 20): Promise<CandidateBoo
   return enriched;
 }
 
+function normalizeListQuery(query: string): string {
+  return query
+    .replace(/\b(książki|książek|książka|książkę|utwory|dzieła|pozycje)\b/gi, " ")
+    .replace(/\b(autora|autora|pisarza|pisarki|o\s+autorze|o\s+autorce|w\s+temacie|na\s+temat)\b/gi, " ")
+    .replace(/^[\s,:;-]+|[\s,:;-]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function looksLikeAuthorQuery(query: string): boolean {
+  const normalized = normalizeText(query);
+  return /\b(autora|autora|pisarza|pisarki|książki|książek|utwory|dzieła)\b/i.test(query) ||
+    /^[a-ząćęłńóśźż]+(?:\s+[a-ząćęłńóśźż]+){1,3}$/i.test(normalized);
+}
+
+async function getBooksForQuery(query: string, maxItems = 20): Promise<CandidateBook[]> {
+  const normalizedQuery = normalizeListQuery(query);
+
+  if (looksLikeAuthorQuery(query) && normalizedQuery) {
+    const authorMatches = await searchAuthors(normalizedQuery, 5);
+    const authorName = authorMatches[0]?.name || normalizedQuery;
+    const authorBooks = await getAuthorBooks(authorName, maxItems);
+    if (authorBooks.length > 0) {
+      return authorBooks;
+    }
+  }
+
+  return getThemeBooks(normalizedQuery || query, maxItems);
+}
+
 async function existingShelfKeys(): Promise<Set<string>> {
   await mkdir(SHELF_DIR, { recursive: true });
   const entries = await readdir(SHELF_DIR, { withFileTypes: true });
@@ -918,6 +948,22 @@ const server = Bun.serve({
 
         const items = await getThemeBooks(theme, max);
         return json({ items });
+      } catch (error) {
+        return json({ error: error instanceof Error ? error.message : String(error) }, 500);
+      }
+    }
+
+    if (url.pathname === "/api/books/list") {
+      const query = (url.searchParams.get("q") ?? "").trim();
+      const max = Math.min(30, Math.max(1, Number(url.searchParams.get("max_items") ?? "12")));
+
+      if (!query) {
+        return json({ error: "Missing query" }, 400);
+      }
+
+      try {
+        const items = await getBooksForQuery(query, max);
+        return json({ query, items });
       } catch (error) {
         return json({ error: error instanceof Error ? error.message : String(error) }, 500);
       }

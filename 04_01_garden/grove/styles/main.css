@@ -513,6 +513,71 @@ td {
   padding-top: 0.55rem;
 }
 
+.shelf-book-query-panel {
+  margin-top: 0.9rem;
+  border-top: 1px dashed var(--border);
+  padding-top: 0.75rem;
+}
+
+.shelf-book-query-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.shelf-book-query-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.6rem 0 0.45rem;
+}
+
+.shelf-book-query-results {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.shelf-book-query-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 0.65rem 0.75rem;
+}
+
+.shelf-book-query-check {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: start;
+  cursor: pointer;
+}
+
+.shelf-book-query-check input {
+  margin-top: 0.18rem;
+}
+
+.shelf-book-query-meta {
+  min-width: 0;
+}
+
+.shelf-book-query-title {
+  color: var(--fg);
+  font-weight: 700;
+}
+
+.shelf-book-query-author {
+  color: var(--fg-secondary);
+  font-size: 0.83rem;
+  margin-top: 0.12rem;
+}
+
+.shelf-book-query-description {
+  color: var(--fg-secondary);
+  font-size: 0.84rem;
+  margin-top: 0.3rem;
+}
+
 .shelf-author-items {
   display: grid;
   gap: 0.4rem;
