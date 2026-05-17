@@ -52,8 +52,8 @@ Use these as concept nodes in diagrams.
 ### Execution Environment Concepts
 
 8. **Lazy sandbox provisioning**
-   - The Daytona sandbox is created only on first need.
-   - Exact fragment: `"if (!this.instance) { ... daytona.create({ language: \"typescript\" }) ... }"` from `src/sandbox/client.ts`.
+   - The local sandbox session is created only on first need.
+   - Exact fragment: `"if (!this.instance) { ... new PureLocalSandbox(sandboxRoot) ... }"` from `src/sandbox/client.ts`.
 
 9. **Bidirectional vault sync**
    - Vault is uploaded into sandbox at init, then synced back on destroy.
@@ -61,7 +61,7 @@ Use these as concept nodes in diagrams.
      - `"sandbox: synced ${vaultCount} vault files"` from `src/sandbox/client.ts`
      - `"sandbox: synced ${count} vault files back"` from `src/sandbox/client.ts`
 
-10. **Remote workdir abstraction**
+10. **Sandbox workdir abstraction**
     - Tool execution and file IO target `workspace/repo`.
     - Exact fragment: `"const WORKDIR = \"workspace/repo\""` from `src/sandbox/client.ts`.
 
@@ -145,14 +145,14 @@ Use these as concept nodes in diagrams.
     - Minimal deterministic function tool.
     - Useful as a basic demonstration/testing primitive.
 
-### C. Remote Execution Layer
+### C. Sandbox Execution Layer
 
-12. **Daytona Sandbox Manager** (`src/sandbox/client.ts`)
-    - Creates and owns remote sandbox lifecycle.
+12. **Local Sandbox Manager** (`src/sandbox/client.ts`)
+   - Creates and owns local sandbox lifecycle.
     - Uploads local vault and build-related files.
     - On teardown, downloads modified vault files back.
 
-13. **Sandbox FS + Process APIs** (via Daytona SDK)
+13. **Sandbox FS + Process APIs** (local implementation)
     - `sandbox.fs.uploadFile`, `downloadFile`
     - `sandbox.process.executeCommand`
     - Provides the isolated execution substrate for agent tools.
@@ -183,7 +183,7 @@ For architecture diagrams, separate into these trust zones:
    - Bun runtime, source repository, local git state.
    - Agent orchestrator and tool registry live here.
 
-2. **Sandbox (Remote, Isolated)**
+2. **Sandbox (Local, Isolated)**
    - Command execution and file writes happen here.
    - Receives synced project/vault snapshot.
 
@@ -249,7 +249,7 @@ These are useful for schema-level diagrams.
 - **User Interaction:** User, CLI Entrypoint
 - **Agent Core:** Orchestrator, Template Loader, OpenAI Adapter, Tool Registry, Logger
 - **Tooling:** exec, text_editor, code_mode, git_push, sum, web_search
-- **Execution Substrate:** LazySandbox, Daytona Sandbox FS/Process
+- **Execution Substrate:** LazySandbox, Local Sandbox FS/Process
 - **Content System:** Vault, Grove Builder, Dist
 - **Delivery:** GitHub Repo, GitHub Actions, GitHub Pages
 
@@ -264,7 +264,7 @@ These are useful for schema-level diagrams.
 - Orchestrator -> Tool Registry (`findTool`, `definitions`)
 - Tool Registry -> Tool Handlers (`dispatch`)
 - Tool Handlers -> LazySandbox (`get()`)
-- LazySandbox -> Daytona (`create/delete sandbox`)
+- LazySandbox -> Local Sandbox Session (`create/delete sandbox`)
 - Tools (`text_editor`, `code_mode`, `exec`) -> Sandbox FS/Process (`io/commands`)
 - `git_push` -> Local Git Repo (`add/commit/push`)
 - Local Git Repo -> GitHub Actions (`push event`)
@@ -291,8 +291,8 @@ flowchart LR
   EXEC --> SB[src/sandbox/client.ts]
   TE --> SB
   CM --> SB
-  GP --> SB
-  SB --> DAY[(Daytona Sandbox)]
+   GP --> SB
+   SB --> LSB[(Local Sandbox)]
   SB --> VAULT[(vault/)]
   GP --> GIT[(GitHub repo)]
   GIT --> CI[.github/workflows/deploy.yml]
@@ -305,7 +305,7 @@ flowchart LR
 
 - **Style:** Tool-augmented LLM orchestrator with externalized content store.
 - **Control pattern:** Iterative request-response loop with optional function-call branches.
-- **Execution model:** Hybrid local orchestration + remote sandbox execution.
+- **Execution model:** Hybrid local orchestration + local sandbox execution.
 - **Content model:** Markdown-first knowledge base transformed into static web artifacts.
 - **Operational model:** Push-based CI deployment to GitHub Pages.
 

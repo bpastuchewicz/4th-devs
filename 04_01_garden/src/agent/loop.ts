@@ -7,6 +7,7 @@ import { logToolCall, logToolResult, logBuiltinTools, logTurn } from "./log";
 import type {
   ResponseInputItem,
   ResponseFunctionToolCall,
+  ResponseOutputItem,
   ToolContext,
 } from "../types";
 import type { AgentResult } from "./types";
@@ -74,9 +75,15 @@ export async function run(
       return { text: response.output_text, turns: turn + 1, totalTokens };
     }
 
-    input = await Promise.all(
+    const toolOutputs = await Promise.all(
       toolCalls.map((call) => executeToolCall(call, context)),
     );
+
+    const functionCallItems = response.output.filter(
+      (item): item is ResponseOutputItem => item.type === "function_call",
+    );
+    input = [...functionCallItems, ...toolOutputs];
+    previousResponseId = undefined;
   }
 
   return { text: "Max turns reached", turns: config.maxTurns, totalTokens };

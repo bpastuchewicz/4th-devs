@@ -1,7 +1,15 @@
-import { Daytona } from "@daytonaio/sdk";
-import type { Sandbox } from "@daytonaio/sdk";
-import { mkdir, readdir, stat } from "node:fs/promises";
-import { dirname, join, relative, sep } from "node:path";
+import { spawn } from "node:child_process";
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
+import { dirname, join, relative, resolve, sep } from "node:path";
 
 const WORKDIR = "workspace/repo";
 const LOCAL_SYNC_INTERVAL_MS = 700;
@@ -9,7 +17,178 @@ const LOCAL_SYNC_INTERVAL_MS = 700;
 const PROJECT_ROOT = join(import.meta.dir, "../..");
 const VAULT_DIR = join(PROJECT_ROOT, "vault");
 
-const daytona = new Daytona();
+interface CommandResult {
+  exitCode: number;
+  result: string;
+}
+
+interface LocalSandbox {
+  fs: {
+    uploadFile(localPath: string, remotePath: string): Promise<void>;
+    downloadFile(remotePath: string): Promise<Uint8Array>;
+    deleteFile(remotePath: string): Promise<void>;
+  };
+  process: {
+    executeCommand(
+      command: string,
+      cwd?: string,
+      env?: Record<string, string>,
+      timeoutSeconds?: number,
+    ): Promise<CommandResult>;
+    codeRun(
+      script: string,
+      options?: { env?: Record<string, string> },
+      timeoutSeconds?: number,
+    ): Promise<CommandResult>;
+  };
+  delete(): Promise<void>;
+}
+
+function toPlatformPath(path: string): string {
+  return path.split("/").join(sep);
+}
+
+function mergeOutput(stdout: string, stderr: string): string {
+  if (!stdout) return stderr;
+  if (!stderr) return stdout;
+  return `${stdout}\n${stderr}`;
+}
+
+async function runCommand(
+  command: string,
+  args: string[],
+  options: {
+    cwd: string;
+    env?: Record<string, string>;
+    timeoutSeconds?: number;
+  },
+): Promise<CommandResult> {
+  const timeoutMs = (options.timeoutSeconds ?? 0) * 1000;
+
+  return new Promise((resolvePromise) => {
+    const child = spawn(command, args, {
+      cwd: options.cwd,
+      env: { ...process.env, ...(options.env ?? {}) },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+    let timedOut = false;
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+    if (timeoutMs > 0) {
+      timeoutHandle = setTimeout(() => {
+        timedOut = true;
+        child.kill("SIGTERM");
+        const killHandle = setTimeout(() => {
+          child.kill("SIGKILL");
+        }, 1000);
+        killHandle.unref();
+      }, timeoutMs);
+      timeoutHandle.unref();
+    }
+
+    child.on("close", (code) => {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      resolvePromise({
+        exitCode: timedOut ? 124 : (code ?? 1),
+        result: mergeOutput(stdout, stderr).trimEnd(),
+      });
+    });
+
+    child.on("error", (error) => {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      resolvePromise({
+        exitCode: 1,
+        result: error.message,
+      });
+    });
+  });
+}
+
+class PureLocalSandbox implements LocalSandbox {
+  constructor(private readonly rootDir: string) {}
+
+  private resolveInsideRoot(path: string): string {
+    const normalized = path.replace(/^\/+/, "");
+    const absolute = resolve(this.rootDir, toPlatformPath(normalized));
+    if (absolute !== this.rootDir && !absolute.startsWith(`${this.rootDir}${sep}`)) {
+      throw new Error(`Path escapes sandbox root: ${path}`);
+    }
+    return absolute;
+  }
+
+  readonly fs = {
+    uploadFile: async (localPath: string, remotePath: string): Promise<void> => {
+      const destination = this.resolveInsideRoot(remotePath);
+      await mkdir(dirname(destination), { recursive: true });
+      await copyFile(localPath, destination);
+    },
+
+    downloadFile: async (remotePath: string): Promise<Uint8Array> => {
+      const source = this.resolveInsideRoot(remotePath);
+      return readFile(source);
+    },
+
+    deleteFile: async (remotePath: string): Promise<void> => {
+      const file = this.resolveInsideRoot(remotePath);
+      await rm(file);
+    },
+  };
+
+  readonly process = {
+    executeCommand: async (
+      command: string,
+      cwd?: string,
+      env?: Record<string, string>,
+      timeoutSeconds?: number,
+    ): Promise<CommandResult> => {
+      const commandCwd = cwd ? this.resolveInsideRoot(cwd) : this.rootDir;
+      return runCommand("sh", ["-lc", command], {
+        cwd: commandCwd,
+        env,
+        timeoutSeconds,
+      });
+    },
+
+    codeRun: async (
+      script: string,
+      options?: { env?: Record<string, string> },
+      timeoutSeconds?: number,
+    ): Promise<CommandResult> => {
+      const tempScript = this.resolveInsideRoot(
+        `.code-run-${Date.now()}-${Math.random().toString(16).slice(2)}.ts`,
+      );
+
+      await mkdir(dirname(tempScript), { recursive: true });
+      await writeFile(tempScript, script, "utf-8");
+
+      try {
+        const relativeScript = toPosixPath(relative(this.rootDir, tempScript));
+        return await runCommand("bun", [relativeScript], {
+          cwd: this.rootDir,
+          env: options?.env,
+          timeoutSeconds,
+        });
+      } finally {
+        await rm(tempScript, { force: true });
+      }
+    },
+  };
+
+  async delete(): Promise<void> {
+    await rm(this.rootDir, { recursive: true, force: true });
+  }
+}
 
 function toPosixPath(path: string): string {
   return path.split(sep).join("/");
@@ -38,7 +217,7 @@ async function collectFiles(dir: string): Promise<string[]> {
 }
 
 async function uploadLocalDir(
-  sandbox: Sandbox,
+  sandbox: LocalSandbox,
   localDir: string,
   remoteBase: string,
 ): Promise<number> {
@@ -72,7 +251,7 @@ async function snapshotLocalVault(): Promise<Map<string, string>> {
 }
 
 async function syncLocalVaultToSandbox(
-  sandbox: Sandbox,
+  sandbox: LocalSandbox,
   previousSnapshot: Map<string, string>,
 ): Promise<{ snapshot: Map<string, string>; uploaded: number; deleted: number }> {
   const nextSnapshot = await snapshotLocalVault();
@@ -99,14 +278,14 @@ async function syncLocalVaultToSandbox(
   return { snapshot: nextSnapshot, uploaded, deleted };
 }
 
-async function initSandbox(sandbox: Sandbox): Promise<void> {
+async function initSandbox(sandbox: LocalSandbox): Promise<void> {
   await sandbox.process.executeCommand(`mkdir -p ${WORKDIR}/vault`);
 
   const vaultCount = await uploadLocalDir(sandbox, VAULT_DIR, `${WORKDIR}/vault`);
   console.log(`sandbox: synced ${vaultCount} vault files`);
 }
 
-async function syncVaultBack(sandbox: Sandbox): Promise<number> {
+async function syncVaultBack(sandbox: LocalSandbox): Promise<number> {
   const result = await sandbox.process.executeCommand(
     `find ${WORKDIR}/vault -type f -not -path '*/system/*' -not -name '.DS_Store'`,
   );
@@ -136,7 +315,7 @@ async function syncVaultBack(sandbox: Sandbox): Promise<number> {
 }
 
 export class LazySandbox {
-  private instance: Sandbox | null = null;
+  private instance: LocalSandbox | null = null;
   private localSnapshot = new Map<string, string>();
   private localSyncTimer: ReturnType<typeof setInterval> | null = null;
   private syncInFlight = false;
@@ -192,10 +371,13 @@ export class LazySandbox {
     }
   }
 
-  async get(): Promise<Sandbox> {
+  async get(): Promise<LocalSandbox> {
     if (!this.instance) {
       console.log("sandbox: creating...");
-      const sandbox = await daytona.create({ language: "typescript" });
+      const baseDir = join(PROJECT_ROOT, ".sandbox-local");
+      await mkdir(baseDir, { recursive: true });
+      const sandboxRoot = await mkdtemp(join(baseDir, "session-"));
+      const sandbox = new PureLocalSandbox(sandboxRoot);
       await initSandbox(sandbox);
       this.instance = sandbox;
       this.localSnapshot = await snapshotLocalVault();

@@ -1,10 +1,10 @@
-import { Daytona } from "@daytonaio/sdk";
+import { LazySandbox, WORKDIR } from "./sandbox/client";
 
-const daytona = new Daytona();
+const lazySandbox = new LazySandbox();
 
-console.log("creating sandbox...");
-const sandbox = await daytona.create({ language: "typescript" });
-console.log("sandbox created");
+console.log("creating local sandbox...");
+const sandbox = await lazySandbox.get();
+console.log("local sandbox created");
 
 const REPO = process.env.GITHUB_REPO ?? "";
 const TOKEN = process.env.GITHUB_TOKEN ?? "";
@@ -14,27 +14,23 @@ console.log("\n--- git version ---");
 const gitVer = await sandbox.process.executeCommand("git --version");
 console.log("exit:", gitVer.exitCode, "result:", gitVer.result);
 
-// Test 2: Try SDK git.clone
-console.log("\n--- SDK git.clone ---");
-try {
-  await sandbox.git.clone(REPO, "workspace/repo", undefined, undefined, "git", TOKEN);
-  console.log("SDK clone: OK");
-} catch (e: any) {
-  console.log("SDK clone error:", e?.message ?? e);
-
-  // Test 3: Try shell git clone --depth 1
+// Test 2: Try shell git clone --depth 1
+if (REPO && TOKEN) {
   console.log("\n--- shell git clone --depth 1 ---");
   const authedUrl = REPO.replace("https://", `https://git:${TOKEN}@`);
   const clone = await sandbox.process.executeCommand(
-    `git clone --depth 1 ${authedUrl} workspace/repo 2>&1`,
+    `git clone --depth 1 ${authedUrl} ${WORKDIR} 2>&1`,
   );
   console.log("exit:", clone.exitCode, "result:", clone.result);
+} else {
+  console.log("\n--- shell git clone --depth 1 ---");
+  console.log("skip: set GITHUB_REPO and GITHUB_TOKEN to test cloning");
 }
 
-// Test 4: Check what we got
+// Test 3: Check what we got
 console.log("\n--- ls workspace/repo ---");
-const ls = await sandbox.process.executeCommand("ls -la workspace/repo");
+const ls = await sandbox.process.executeCommand(`ls -la ${WORKDIR}`);
 console.log("exit:", ls.exitCode, "result:", ls.result);
 
-await sandbox.delete();
+await lazySandbox.destroy();
 console.log("done");

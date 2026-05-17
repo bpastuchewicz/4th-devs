@@ -1,12 +1,12 @@
-# Skills + Code Mode Concept (MCP + Daytona)
+# Skills + Code Mode Concept (MCP + Local Sandbox)
 
 This note captures a proposed architecture for evolving `04_01_garden` from direct tool-calling toward a skill-driven, code-oriented execution model.
 
 ## Why this direction
 
 - Tool calling works well for simple actions, but complex multi-step flows are brittle when each step must be serialized through model/tool/model loops.
-- A code-mode approach lets the model write executable orchestration code once, then run it in a sandbox and return distilled output.
-- Daytona already exposes primitives (`process.codeRun`, `process.executeCommand`, `fs.*`, sessions) that fit this execution model.
+- A code-mode approach lets the model write executable orchestration code once, then run it in an isolated local sandbox and return distilled output.
+- The local sandbox exposes primitives (`process.codeRun`, `process.executeCommand`, `fs.*`, local sessions) that fit this execution model.
 
 ## Proposed Architectural Layers
 
@@ -46,7 +46,7 @@ The API should be easier to reason about than raw tool calls and map 1:1 to appr
 Add a `code_mode` tool:
 
 - Input: TypeScript snippet + optional arguments
-- Execution: `sandbox.process.codeRun(...)` in Daytona
+- Execution: `sandbox.process.codeRun(...)` in the local sandbox
 - Network: blocked by default where possible
 - File access: only through helper API or policy-checked wrappers
 - Output contract: JSON envelope (`ok`, `result`, `logs`, `errors`)
@@ -105,7 +105,7 @@ This preserves MCP interoperability while moving call composition into code.
 - Skill Resolver
 - Capability Gate
 - Code Mode Executor
-- Daytona Sandbox
+- Local Sandbox Runtime
 - Typed Capability API
 - MCP Adapters
 - Vault Content
@@ -113,5 +113,5 @@ This preserves MCP interoperability while moving call composition into code.
 
 ## Diagram Flow (high level)
 
-User request -> Skill Resolver -> (Direct tools OR Code Mode Executor) -> Capability Gate -> Daytona execution -> Vault changes -> Publish path
+User request -> Skill Resolver -> (Direct tools OR Code Mode Executor) -> Capability Gate -> local sandbox execution -> Vault changes -> Publish path
 

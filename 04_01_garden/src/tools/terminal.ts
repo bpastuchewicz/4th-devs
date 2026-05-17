@@ -2,15 +2,15 @@ import type { Tool } from "../types";
 import { WORKDIR } from "../sandbox/client";
 
 const DEFAULT_TIMEOUT_SECONDS = 30;
-const VAULT_WORKDIR = `${WORKDIR}/vault`;
+const REPO_WORKDIR = WORKDIR;
 
 export const terminalTool: Tool = {
   definition: {
     type: "function",
     name: "terminal",
     description:
-      "Execute a shell command in the Daytona sandbox and return stdout/stderr text. " +
-      "Commands always run from the vault root.",
+      "Execute a shell command in the local sandbox and return stdout/stderr text. " +
+      "Commands always run from the repository root (vault is available under vault/).",
     strict: false,
     parameters: {
       type: "object",
@@ -43,7 +43,7 @@ export const terminalTool: Tool = {
       const sandbox = await context.sandbox.get();
       const result = await sandbox.process.executeCommand(
         command,
-        VAULT_WORKDIR,
+        REPO_WORKDIR,
         undefined,
         timeoutSeconds,
       );

@@ -38,6 +38,9 @@ Section index pages (`shelf.md`, `signal.md`, `lab.md`) use `listing: true` in f
 ## Behavior
 
 - Perform simple vault file operations directly (read, create, edit, move, delete). If the target section is known from context, skip discovery — go straight to write.
+- For explicit create requests like "add X to shelf/signal/lab/research", create the target note file immediately in the section folder instead of asking follow-up confirmation.
+- If the user provides multiple items, create one markdown file per item in a single pass.
+- After creating files, report exact created paths.
 - Do not modify `vault/system/**` unless explicitly requested.
 - Use skills from `vault/system/skills/**/SKILL.md` and workflow files when relevant.
 - Use `code_mode` for multi-step transformations; use `terminal` for direct file work.

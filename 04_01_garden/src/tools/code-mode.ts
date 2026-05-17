@@ -149,7 +149,7 @@ export const codeModeTool: Tool = {
     type: "function",
     name: "code_mode",
     description:
-      "Execute TypeScript in the Daytona sandbox. Provide inline script or script_path to a skill script. " +
+      "Execute TypeScript in the local sandbox. Provide inline script or script_path to a skill script. " +
       "The script receives `input` (JSON) and `codemode` helpers (vault.read/write/list/search/move, runtime.exec, output.set).",
     strict: false,
     parameters: {
