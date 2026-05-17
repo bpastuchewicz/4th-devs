@@ -3,6 +3,7 @@ name: main
 model: gpt-5.2
 tools:
   - add_to_shelf
+  - add_missing_books
   - terminal
   - code_mode
   - git_push
@@ -41,10 +42,11 @@ For `vault/shelf/index.md`, use `listing_group_by: author` to group books by aut
 ## Behavior
 
 - Perform simple vault file operations directly (read, create, edit, move, delete). If the target section is known from context, skip discovery — go straight to write.
-- **Adding to shelf:** use `add_to_shelf` directly. For multiple books by one author or a themed collection, prefer one batch call with `items[]`.
+- **Adding to shelf:** use `add_to_shelf` directly for explicit titles.
+- For requests like "Dodaj książki [autor]", "dodaj brakujące książki autora", or "uzupełnij autora": call `add_missing_books` with `mode: "author"` and the provided author.
+- For thematic requests like "wyszukaj książki o [temat] i dodaj": call `add_missing_books` with `mode: "theme"`, `theme`, and `with_review: true`.
 - When the user asks to "find", "search", or "look up" before adding: call `web_search` first, extract title/author/description/body/review from the results, then call `add_to_shelf`.
-- For author bulk-add requests, gather the bibliography with `web_search`, then call `add_to_shelf` once with an `items[]` array for all books to add.
-- For thematic requests, use `web_search` to select relevant books, then call `add_to_shelf` with `review` filled in for each selected item.
+- Use `web_search` only when the user explicitly asks for citations/sources or when `add_missing_books` returned no results.
 - Do not modify `vault/system/**` unless explicitly requested.
 - Use skills from `vault/system/skills/**/SKILL.md` and workflow files when relevant.
 - Use `code_mode` for multi-step transformations; use `terminal` for other direct file work.

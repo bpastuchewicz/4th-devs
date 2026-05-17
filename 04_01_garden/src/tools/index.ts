@@ -3,6 +3,7 @@ import { terminalTool } from "./terminal";
 import { codeModeTool } from "./code-mode";
 import { gitPushTool } from "./git-push";
 import { addToShelfTool } from "./add-to-shelf";
+import { addMissingBooksTool } from "./add-missing-books";
 
 const registry = new Map<string, Tool>();
 
@@ -14,6 +15,7 @@ register(terminalTool);
 register(codeModeTool);
 register(gitPushTool);
 register(addToShelfTool);
+register(addMissingBooksTool);
 
 const BUILTIN_TOOLS: Record<string, AnyTool> = {
   web_search: {
